@@ -43,3 +43,15 @@ export interface PromiseCard {
   title: string;
   content: string;
 }
+
+export interface CornerNode {
+  id: string;
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  message: string;
+}
+
+export interface OptionalContainer {
+  id: string;
+  title: string;
+  content: string;
+}

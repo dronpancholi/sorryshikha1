@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Scene, ProgressionMessage } from '../types';
+import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
+import { Scene, CornerNode, OptionalContainer } from '../types';
 import { 
   PROGRESSION_MESSAGES, 
   NO_REBUTTALS, 
@@ -11,15 +11,23 @@ import {
   DOUBT_TILES, 
   REALITY_TEXT,
   NOTICE_CARDS,
-  PROMISE_CARDS
+  PROMISE_CARDS,
+  MICRO_MESSAGES,
+  CORNER_NODES,
+  OPTIONAL_CONTAINERS,
+  EXTRA_LAYER_CONTENT
 } from '../constants';
 import GlassCard from './GlassCard';
 
 interface UIOverlayProps {
   onSceneChange: (scene: Scene) => void;
+  isPaused: boolean;
+  setIsPaused: (v: boolean) => void;
+  dimLevel: number;
+  setDimLevel: (v: number) => void;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange, isPaused, setIsPaused, dimLevel, setDimLevel }) => {
   const [currentScene, setCurrentScene] = useState<Scene>(Scene.ENTRY);
   const [progStep, setProgStep] = useState(0);
   const [noCount, setNoCount] = useState(0);
@@ -28,6 +36,15 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   const [hadToResponse, setHadToResponse] = useState(false);
   const [valuesUnderstanding, setValuesUnderstanding] = useState(false);
   
+  // Phase 5 States
+  const [activeMicroMessage, setActiveMicroMessage] = useState<string | null>(null);
+  const [activeCornerMsg, setActiveCornerMsg] = useState<{ id: string, msg: string } | null>(null);
+  const [holdLine, setHoldLine] = useState<string | null>(null);
+  const [openContainers, setOpenContainers] = useState<Set<string>>(new Set());
+  const [extraLayerVisible, setExtraLayerVisible] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 });
+
   // Notice & Promise States
   const [activeNotice, setActiveNotice] = useState<string | null>(null);
   const [activePromise, setActivePromise] = useState<string | null>(null);
@@ -50,6 +67,21 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
     }
   };
 
+  // Phase 5: Floating Micro-Messages Logic
+  useEffect(() => {
+    const showRandomMsg = () => {
+      const msg = MICRO_MESSAGES[Math.floor(Math.random() * MICRO_MESSAGES.length)];
+      setActiveMicroMessage(msg);
+      setTimeout(() => setActiveMicroMessage(null), 4000);
+    };
+    
+    const interval = setInterval(() => {
+      if (Math.random() > 0.5) showRandomMsg();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (currentScene === Scene.TRANSITION_TO_SCROLL) {
       const timer = setTimeout(() => {
@@ -64,6 +96,13 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     setRevealedDoubts(next);
+  };
+
+  const toggleContainer = (id: string) => {
+    const next = new Set(openContainers);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setOpenContainers(next);
   };
 
   const handleNoClick = () => setNoCount(prev => prev + 1);
@@ -98,8 +137,102 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
     animate: { opacity: 1, y: 0, transition: { duration: 1.2 } }
   };
 
+  const handleCornerClick = (node: CornerNode) => {
+    setActiveCornerMsg({ id: node.id, msg: node.message });
+    setTimeout(() => setActiveCornerMsg(null), 3000);
+  };
+
+  const handleLongPress = (msg: string) => {
+    setHoldLine(msg);
+    setTimeout(() => setHoldLine(null), 3000);
+  };
+
   return (
     <div className={`relative z-10 w-full ${currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP ? 'min-h-fit' : 'h-screen overflow-hidden'} flex flex-col items-center select-none`}>
+      
+      {/* Dim Overlay (Phase 5) */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-[80] transition-colors duration-1000" 
+        style={{ backgroundColor: `rgba(0,0,0,${dimLevel})` }} 
+      />
+
+      {/* Passive Progress Indicator (Phase 5) */}
+      {(currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP) && (
+        <motion.div 
+          className="fixed top-0 left-0 right-0 h-[1px] bg-pink-500/30 z-[99] origin-left"
+          style={{ scaleX }}
+        />
+      )}
+
+      {/* Floating Micro-Messages (Phase 5) */}
+      <AnimatePresence>
+        {activeMicroMessage && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 0.4, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed z-[95] text-[10px] uppercase tracking-widest pointer-events-none italic"
+            style={{ 
+              top: `${Math.random() * 60 + 20}%`, 
+              left: `${Math.random() * 60 + 20}%` 
+            }}
+          >
+            {activeMicroMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Corner Interaction Nodes (Phase 5) */}
+      {CORNER_NODES.map((node) => (
+        <div 
+          key={node.id} 
+          className={`fixed z-[99] p-4 cursor-pointer group ${
+            node.position === 'top-left' ? 'top-0 left-0' :
+            node.position === 'top-right' ? 'top-0 right-0' :
+            node.position === 'bottom-left' ? 'bottom-0 left-0' : 'bottom-0 right-0'
+          }`}
+          onClick={() => handleCornerClick(node)}
+        >
+          <motion.div 
+            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ repeat: Infinity, duration: 3 }}
+            className="w-2 h-2 rounded-full bg-white/40 group-hover:bg-white/80 transition-colors"
+          />
+          <span className="absolute hidden group-hover:block text-[8px] uppercase tracking-widest opacity-40 mt-2 whitespace-nowrap">Tap</span>
+        </div>
+      ))}
+
+      <AnimatePresence>
+        {activeCornerMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] glass p-6 rounded-2xl text-xs uppercase tracking-[0.3em] opacity-70 pointer-events-none"
+          >
+            {activeCornerMsg.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Non-Question Interactive Controls (Phase 5) */}
+      {(currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP) && (
+        <div className="fixed bottom-6 right-6 z-[99] flex flex-col gap-4 items-end opacity-20 hover:opacity-100 transition-opacity">
+          <button 
+            onClick={() => setIsPaused(!isPaused)} 
+            className="glass w-10 h-10 rounded-full flex items-center justify-center text-[8px] uppercase tracking-tighter"
+          >
+            {isPaused ? 'Resume' : 'Pause'}
+          </button>
+          <button 
+            onClick={() => setDimLevel(dimLevel === 0 ? 0.6 : 0)} 
+            className="glass w-10 h-10 rounded-full flex items-center justify-center text-[8px] uppercase tracking-tighter"
+          >
+            {dimLevel === 0 ? 'Dim' : 'Back'}
+          </button>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         
         {/* Phase 1 Scenes */}
@@ -200,7 +333,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
           </motion.div>
         )}
 
-        {/* Phase 2, 3, 4 & 5 Scrollable Experience */}
+        {/* Phase 2+ Scrollable Experience */}
         {(currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP) && (
           <motion.div key="phase2plus" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.5 }} className="w-full flex flex-col items-center pb-60">
             
@@ -220,7 +353,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               </div>
             </section>
 
-            {/* Little Things I Noticed (NEW Phase 5) */}
+            {/* Phase 5: Open if you want #1 */}
+            <section className="min-h-[50vh] w-full flex flex-col items-center justify-center p-10">
+              <div onClick={() => toggleContainer('opt1')} className="glass p-6 rounded-2xl cursor-pointer max-w-sm w-full text-center border-white/5 hover:border-white/10 transition-all">
+                <span className="text-xs uppercase tracking-widest opacity-40">{OPTIONAL_CONTAINERS[0].title}</span>
+                <p className="mt-2 text-[10px] opacity-20 uppercase tracking-tighter">Open if you want</p>
+                <AnimatePresence>
+                  {openContainers.has('opt1') && (
+                    <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-6 text-sm font-serif italic opacity-70">
+                      {OPTIONAL_CONTAINERS[0].content}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </section>
+
+            {/* Little Things I Noticed */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center">
               <h2 className="text-sm uppercase tracking-[0.5em] opacity-40 mb-20">Little Things I Noticed</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl w-full">
@@ -247,15 +395,47 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               </div>
             </section>
 
-            {/* Truth Section */}
+            {/* Truth Section with Long Press (Phase 5) */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
               <motion.div initial="initial" whileInView="animate" viewport={{ once: true, margin: "-100px" }} transition={{ staggerChildren: 1.5 }}>
                 <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light mb-4">I didn’t fail in love.</motion.h3>
                 <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light opacity-60">I failed in expression.</motion.h3>
                 <motion.div variants={lineVariants} className="pt-8">
-                  <span className="text-lg md:text-xl font-medium tracking-widest uppercase">And I’m owning that.</span>
+                  <span className="text-lg md:text-xl font-medium tracking-widest uppercase block mb-4">And I’m owning that.</span>
+                  
+                  <div className="mt-12 flex flex-col items-center gap-2">
+                    <motion.button 
+                      onMouseDown={() => handleLongPress("I'm committed to doing better.")}
+                      onTouchStart={() => handleLongPress("I'm committed to doing better.")}
+                      className="px-6 py-2 border border-white/10 rounded-full text-[10px] uppercase tracking-widest opacity-30 hover:opacity-100 transition-opacity"
+                    >
+                      Press and hold
+                    </motion.button>
+                    <AnimatePresence>
+                      {holdLine && (
+                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-sm italic text-pink-300">
+                          {holdLine}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </motion.div>
               </motion.div>
+            </section>
+
+            {/* Phase 5: Open if you want #2 */}
+            <section className="min-h-[50vh] w-full flex flex-col items-center justify-center p-10">
+              <div onClick={() => toggleContainer('opt2')} className="glass p-6 rounded-2xl cursor-pointer max-w-sm w-full text-center border-white/5 hover:border-white/10 transition-all">
+                <span className="text-xs uppercase tracking-widest opacity-40">{OPTIONAL_CONTAINERS[1].title}</span>
+                <p className="mt-2 text-[10px] opacity-20 uppercase tracking-tighter">Open if you want</p>
+                <AnimatePresence>
+                  {openContainers.has('opt2') && (
+                    <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-6 text-sm font-serif italic opacity-70">
+                      {OPTIONAL_CONTAINERS[1].content}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
             </section>
 
             {/* Clarification Cards */}
@@ -287,7 +467,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               </div>
             </section>
 
-            {/* If I Ever Hurt You Again (NEW Phase 5) */}
+            {/* If I Ever Hurt You Again */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center">
               <h2 className="text-sm uppercase tracking-[0.5em] opacity-40 mb-20">If I Ever Hurt You Again</h2>
               <div className="flex flex-col gap-6 max-w-2xl w-full">
@@ -314,7 +494,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               </div>
             </section>
 
-            {/* Interactive Assurance Slider (NEW Phase 5) */}
+            {/* Interactive Assurance Slider */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center">
                <GlassCard className="max-w-md w-full !p-10">
                   <h3 className="text-xl font-serif mb-12">How sure am I about you?</h3>
@@ -325,7 +505,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                       max="100" 
                       value={assuranceValue} 
                       onChange={(e) => setAssuranceValue(parseInt(e.target.value))}
-                      className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-orange-400"
+                      className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-pink-400"
                     />
                   </div>
                   <div className="flex justify-between mt-4 text-[10px] uppercase tracking-widest opacity-40">
@@ -334,7 +514,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                   </div>
                   <motion.p 
                     animate={{ opacity: assuranceValue > 80 ? 1 : 0.4 }}
-                    className="mt-12 font-serif italic text-bronze-200"
+                    className="mt-12 font-serif italic text-pink-200"
                   >
                     {assuranceValue < 30 ? "I'm fixed on you." : assuranceValue > 70 ? "Every day I decide again." : "You are the only choice."}
                   </motion.p>
@@ -356,7 +536,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                  <h2 className="text-sm uppercase tracking-[0.4em] opacity-40 mb-16">What I Actually Stand For</h2>
                  <div className="space-y-12">
                     {VALUES_TEXT.map((text, index) => (
-                      <motion.p key={index} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: index * 0.6 }} viewport={{ once: true }} className={`font-serif text-xl md:text-3xl ${index === 2 ? "text-indigo-200" : "text-white/90"}`}>{text}</motion.p>
+                      <motion.p key={index} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.5, delay: index * 0.6 }} viewport={{ once: true }} className={`font-serif text-xl md:text-3xl ${index === 2 ? "text-pink-200" : "text-white/90"}`}>{text}</motion.p>
                     ))}
                  </div>
                  <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: 5 }} className="mt-20 flex flex-col items-center">
@@ -366,10 +546,25 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                        <button className="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all text-sm">Yes</button>
                        <button onClick={() => setValuesUnderstanding(true)} className="px-6 py-2 rounded-full border border-white/20 hover:bg-white/5 transition-all text-sm opacity-70">I want to understand more</button>
                      </div>
-                     <AnimatePresence>{valuesUnderstanding && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-orange-200/80 italic text-sm">Then I’ll explain, not defend.</motion.p>}</AnimatePresence>
+                     <AnimatePresence>{valuesUnderstanding && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 text-pink-200/80 italic text-sm">Then I’ll explain, not defend.</motion.p>}</AnimatePresence>
                    </GlassCard>
                  </motion.div>
                </motion.div>
+            </section>
+
+            {/* Phase 5: Open if you want #3 */}
+            <section className="min-h-[50vh] w-full flex flex-col items-center justify-center p-10">
+              <div onClick={() => toggleContainer('opt3')} className="glass p-6 rounded-2xl cursor-pointer max-w-sm w-full text-center border-white/5 hover:border-white/10 transition-all">
+                <span className="text-xs uppercase tracking-widest opacity-40">{OPTIONAL_CONTAINERS[2].title}</span>
+                <p className="mt-2 text-[10px] opacity-20 uppercase tracking-tighter">Open if you want</p>
+                <AnimatePresence>
+                  {openContainers.has('opt3') && (
+                    <motion.p initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-6 text-sm font-serif italic opacity-70">
+                      {OPTIONAL_CONTAINERS[2].content}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
             </section>
 
             {/* "You Matter" Interaction Zone */}
@@ -397,7 +592,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
               <div className="max-w-2xl w-full space-y-8">
                 {REALITY_TEXT.map((text, idx) => (
-                  <motion.p key={idx} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: idx * 0.8 }} className={`font-serif text-xl md:text-3xl ${idx === 5 ? "text-orange-200" : "opacity-50"}`}>{text}</motion.p>
+                  <motion.p key={idx} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: idx * 0.8 }} className={`font-serif text-xl md:text-3xl ${idx === 5 ? "text-pink-300" : "opacity-50"}`}>{text}</motion.p>
                 ))}
               </div>
             </section>
@@ -420,16 +615,36 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               {endPopupStep === 5 && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-12 mt-20">
                    <button onClick={() => setStillHere(true)} className="px-12 py-4 rounded-full border border-white/10 hover:border-white/30 transition-all text-xs tracking-widest uppercase opacity-40">I’m still here.</button>
-                   {stillHere && <motion.div animate={{ height: [0, 80] }} className="w-[1px] bg-gradient-to-b from-orange-400 to-transparent" />}
+                   {stillHere && <motion.div animate={{ height: [0, 80] }} className="w-[1px] bg-gradient-to-b from-pink-400 to-transparent" />}
                 </motion.div>
               )}
+
+              {/* Phase 5: Hidden Extra Layer Entry */}
+              <div className="mt-40">
+                <button 
+                  onClick={() => setExtraLayerVisible(!extraLayerVisible)}
+                  className="text-[10px] uppercase tracking-widest opacity-20 hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  There’s a little more here.
+                </button>
+                <AnimatePresence>
+                  {extraLayerVisible && (
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 max-w-lg mx-auto p-10 glass rounded-3xl border-white/5">
+                      <p className="font-serif italic text-lg leading-relaxed opacity-60">
+                        {EXTRA_LAYER_CONTENT}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <div className="h-60" />
             </section>
 
           </motion.div>
         )}
 
-        {/* Updated End Game Popups (Phase 5 Additive Flow) */}
+        {/* Updated End Game Popups */}
         {currentScene === Scene.END_GAME_POPUP && endPopupStep < 5 && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/70 backdrop-blur-xl">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
@@ -452,7 +667,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                       <button onClick={() => setEndPopupResponse('proc')} className="py-4 glass rounded-xl text-white/50">I’m still processing</button>
                     </div>
                     {endPopupResponse === 'proc' && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-sm text-indigo-200">
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-sm text-pink-200">
                         That’s completely okay.
                         <button onClick={() => { setEndPopupResponse(null); setEndPopupStep(2); }} className="block mx-auto mt-4 underline opacity-40">Continue</button>
                       </motion.p>
@@ -468,7 +683,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                       <button onClick={() => setEndPopupResponse('idk')} className="py-4 glass rounded-xl text-white/50">I don’t know yet</button>
                     </div>
                     {endPopupResponse === 'idk' && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-sm text-indigo-300">
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-sm text-pink-300">
                         Take your time. No pressure.
                         <button onClick={() => { setEndPopupResponse(null); setEndPopupStep(3); }} className="block mx-auto mt-4 underline opacity-40">Continue</button>
                       </motion.p>
@@ -484,7 +699,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                       <button onClick={() => setEndPopupResponse('time-final')} className="py-4 glass rounded-xl text-white/50">Take your time</button>
                     </div>
                     {endPopupResponse === 'time-final' && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-lg text-orange-200">
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6 italic text-lg text-pink-200">
                         I will.
                         <button onClick={() => { setEndPopupResponse(null); setEndPopupStep(5); }} className="block mx-auto mt-4 underline opacity-40">Okay</button>
                       </motion.p>
