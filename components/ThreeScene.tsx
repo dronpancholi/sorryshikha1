@@ -20,7 +20,7 @@ interface AbstractHeartProps {
   color?: string;
 }
 
-const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#ea580c" }) => {
+const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#ff6b81" }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
   useFrame((state) => {
@@ -61,8 +61,11 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   const isWarmer = currentScene !== Scene.ENTRY && currentScene !== Scene.PROGRESSION;
   const isDeep = currentScene === Scene.LOYALTY || currentScene === Scene.AFFIRMATION || currentScene === Scene.END_GAME_POPUP;
   
-  // Transition from a muted indigo to a rich Dark Orange/Amber
-  const mainColor = isDeep ? "#f97316" : (isWarmer ? "#c2410c" : "#4338ca");
+  // Transitioning colors to Pink/Rose palette
+  // isDeep: Soft, glowing pink
+  // isWarmer: Vibrant rose
+  // Initial: Muted indigo-violet
+  const mainColor = isDeep ? "#ff85a2" : (isWarmer ? "#db2777" : "#818cf8");
 
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
