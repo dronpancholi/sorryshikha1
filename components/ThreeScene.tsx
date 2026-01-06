@@ -20,7 +20,7 @@ interface AbstractHeartProps {
   color?: string;
 }
 
-const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#f9a8d4" }) => {
+const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#be185d" }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   
   useFrame((state) => {
@@ -43,7 +43,7 @@ const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#f9a8d4"
           distort={0.4}
           radius={1}
           emissive={color}
-          emissiveIntensity={0.35}
+          emissiveIntensity={0.4}
           roughness={0.1}
           metalness={0.7}
         />
@@ -61,21 +61,21 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   const isWarmer = currentScene !== Scene.ENTRY && currentScene !== Scene.PROGRESSION;
   const isDeep = currentScene === Scene.LOYALTY || currentScene === Scene.AFFIRMATION || currentScene === Scene.END_GAME_POPUP;
   
-  // Transitioning colors to a "perfect girly pink" palette:
-  // isDeep: Sakura Pink (#f9a8d4) - soft, glowing, and sweet
-  // isWarmer: Vibrant Rose Pink (#ec4899) - full of life and warmth
-  // Initial: Soft Lavender Pink (#ddd6fe) - gentle and slightly mysterious to start
-  const mainColor = isDeep ? "#f9a8d4" : (isWarmer ? "#ec4899" : "#ddd6fe");
+  // Transitioning colors to a "dark girly pink" palette:
+  // isDeep: Vibrant Rose (#ec4899) - A bright but rich pink for moments of clarity.
+  // isWarmer: Deep Pink (#be185d) - A sophisticated, darker girly pink.
+  // Initial: Dark Burgundy Rose (#500724) - Very dark pink to start, setting a serious but feminine tone.
+  const mainColor = isDeep ? "#ec4899" : (isWarmer ? "#be185d" : "#500724");
 
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-        <ambientLight intensity={0.6} />
+        <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={2} />
-        <pointLight position={[-10, -10, -10]} color={mainColor} intensity={1.5} />
+        <pointLight position={[-10, -10, -10]} color={mainColor} intensity={2} />
         
-        {/* Subtle background atmosphere with slightly more visible "stardust" */}
-        <Stars radius={120} depth={50} count={1500} factor={6} saturation={0} fade speed={0.4} />
+        {/* Background "stardust" in a subtle pink hue */}
+        <Stars radius={120} depth={50} count={1500} factor={6} saturation={0.5} fade speed={0.4} />
         
         <AbstractHeart active={isWarmer} color={mainColor} />
         
