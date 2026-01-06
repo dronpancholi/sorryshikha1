@@ -77,3 +77,24 @@ export const PROMISE_CARDS: PromiseCard[] = [
   { id: 'slow', title: 'I’ll slow down', content: 'If things feel heavy, I will match your pace, not force my own.' },
   { id: 'protect', title: 'I’ll protect your feelings', content: 'Your emotional safety is a boundary I will never cross again.' }
 ];
+
+// Phase 5 Additions
+export const PHASE5_BLURRED_LINES = [
+  "I'm just glad you're in my world.",
+  "You don't have to change a thing.",
+  "I like who I am when I'm with you."
+];
+
+export const PHASE5_HEADSPACE = [
+  { id: 'calm', title: 'Calm', line: 'Quietly confident about us.' },
+  { id: 'overthinking', title: 'Overthinking', line: 'Wishing I had better words sooner.' },
+  { id: 'trying', title: 'Trying', line: 'Learning to be what you deserve.' }
+];
+
+export const PHASE5_EXPECTATIONS = [
+  "You don’t need to reply.",
+  "You don’t need to decide anything.",
+  "You don’t owe me clarity."
+];
+
+export const PHASE5_EXTRA_CURIOSITY = "Even when things are quiet, please know that I am consistently choosing you. My silence isn't absence; it's often just me trying to find the best way to be there for you.";
