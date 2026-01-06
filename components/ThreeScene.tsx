@@ -97,9 +97,15 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
       <Canvas 
-        gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
+        gl={{ 
+          antialias: true, 
+          powerPreference: 'high-performance', 
+          alpha: true,
+          stencil: false,
+          depth: true
+        }}
         camera={{ position: [0, 0, 5], fov: 45 }}
-        dpr={[1, 2]}
+        dpr={[1, 2]} // Support high-DPI screens without killing performance
       >
         <ambientLight intensity={0.6} />
         <pointLight position={[10, 10, 10]} intensity={1.5} />
