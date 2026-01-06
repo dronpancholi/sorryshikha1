@@ -1,5 +1,5 @@
 
-import { ProgressionMessage, MemoryCard, ClarificationCard } from './types';
+import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile } from './types';
 
 export const PROGRESSION_MESSAGES: ProgressionMessage[] = [
   { id: 1, text: "I messed up." },
@@ -47,4 +47,20 @@ export const VALUES_TEXT = [
   "Every woman in my life deserves space, voice, safety, and the chance to prove herself.",
   "Not because of ideology.",
   "But because that’s the standard I hold myself to."
+];
+
+export const DOUBT_TILES: DoubtTile[] = [
+  { id: 'importance', title: 'Your importance', revealedText: 'You are the priority, always.' },
+  { id: 'place', title: 'Your place', revealedText: 'First place was never a competition.' },
+  { id: 'value', title: 'Your value', revealedText: 'Beyond what any words can measure.' },
+  { id: 'presence', title: 'Your presence', revealedText: 'It is the only part of my day that feels certain.' }
+];
+
+export const REALITY_TEXT = [
+  "Today is January 6th.",
+  "I have my maths end-semester exam on the 8th.",
+  "I still have around 70% of the syllabus left.",
+  "But I chose to build this.",
+  "Not because it was easier.",
+  "Because you matter more than comfort."
 ];

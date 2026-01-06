@@ -6,7 +6,8 @@ export enum Scene {
   LOYALTY = 'LOYALTY',
   AFFIRMATION = 'AFFIRMATION',
   TRANSITION_TO_SCROLL = 'TRANSITION_TO_SCROLL',
-  PHASE_2 = 'PHASE_2'
+  PHASE_2 = 'PHASE_2',
+  END_GAME_POPUP = 'END_GAME_POPUP'
 }
 
 export interface ProgressionMessage {
@@ -23,4 +24,10 @@ export interface ClarificationCard {
   id: string;
   title: string;
   content: string;
+}
+
+export interface DoubtTile {
+  id: string;
+  title: string;
+  revealedText: string;
 }
