@@ -26,19 +26,9 @@
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
-      * {
-        backface-visibility: hidden;
-        -webkit-font-smoothing: antialiased;
-      }
-      ::-webkit-scrollbar {
-        width: 4px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(236, 72, 153, 0.2);
-        border-radius: 10px;
+      /* Ensure smooth scrolling for the 60fps feel */
+      html {
+        scroll-behavior: smooth;
       }
     </style>
     <script type="importmap">
@@ -48,7 +38,7 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "three": "https://esm.sh/three@0.170.0",
-    "@react-three/fiber": "https://esm.sh/@react-three/fiber@9.0.0?external=react,react-dom,three",
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@9.0.0-rc.0?external=react,react-dom,three",
     "@react-three/drei": "https://esm.sh/@react-three/drei@9.114.0?external=react,react-dom,three,@react-three/fiber",
     "framer-motion": "https://esm.sh/framer-motion@11.11.11?external=react,react-dom",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
@@ -59,6 +49,5 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
   </body>
 </html>

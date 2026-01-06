@@ -5,6 +5,7 @@ import { Float, Sphere, MeshDistortMaterial, Stars, Environment } from '@react-t
 import * as THREE from 'three';
 import { Scene } from '../types';
 
+// AbstractHeart component handles the 3D visual logic for the floating central sphere.
 interface AbstractHeartProps {
   active: boolean;
   color?: string;
@@ -18,7 +19,7 @@ const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#be185d"
     if (!meshRef.current) return;
     const time = state.clock.getElapsedTime();
     
-    // Smooth speed transitions for 60FPS
+    // Smooth 60FPS rotational logic
     const interactionSlowdown = active ? 0.35 : 1.0;
     const timeSlowdown = 1 - (timeSpentFactor * 0.4); 
     const finalSpeedMultiplier = interactionSlowdown * timeSlowdown;
@@ -26,7 +27,7 @@ const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#be185d"
     meshRef.current.rotation.y = time * 0.15 * finalSpeedMultiplier;
     meshRef.current.rotation.z = Math.sin(time * 0.2) * 0.1;
     
-    // Soft scale pulse
+    // Pulse animation
     const scaleFactor = 1 + Math.sin(time * 0.8) * 0.04;
     meshRef.current.scale.setScalar(scaleFactor * (active ? 1.15 : 0.85));
     meshRef.current.position.y = Math.sin(time * 0.5) * 0.1;
@@ -61,7 +62,7 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
-      setTimeSpentFactor(Math.min(elapsed / 600, 1)); // Cap at 10 mins
+      setTimeSpentFactor(Math.min(elapsed / 600, 1));
     }, 1000);
     return () => clearInterval(interval);
   }, [startTime]);
@@ -71,7 +72,6 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   
   let baseColor = isDeep ? "#ec4899" : (isWarmer ? "#be185d" : "#500724");
   
-  // Dynamic color interpolation for temperature shift
   const hexToRgb = (hex: string) => {
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
@@ -97,15 +97,9 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
       <Canvas 
-        gl={{ 
-          antialias: true, 
-          powerPreference: 'high-performance', 
-          alpha: true,
-          stencil: false,
-          depth: true
-        }}
+        gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
         camera={{ position: [0, 0, 5], fov: 45 }}
-        dpr={[1, 2]} // Support high-DPI screens without killing performance
+        dpr={[1, 2]}
       >
         <ambientLight intensity={0.6} />
         <pointLight position={[10, 10, 10]} intensity={1.5} />
