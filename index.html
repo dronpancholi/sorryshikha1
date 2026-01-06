@@ -13,7 +13,7 @@
       body {
         margin: 0;
         overflow: hidden;
-        background: #070708;
+        background: #0a0a0c;
         font-family: 'Inter', sans-serif;
         color: #f8fafc;
       }
@@ -21,32 +21,27 @@
         font-family: 'Playfair Display', serif;
       }
       .glass {
-        background: rgba(255, 255, 255, 0.02);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      /* Ensure smooth scrolling for the 60fps feel */
-      html {
-        scroll-behavior: smooth;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
       }
     </style>
-    <script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "three": "https://esm.sh/three@0.170.0",
-    "@react-three/fiber": "https://esm.sh/@react-three/fiber@9.0.0-rc.0?external=react,react-dom,three",
-    "@react-three/drei": "https://esm.sh/@react-three/drei@9.114.0?external=react,react-dom,three,@react-three/fiber",
-    "framer-motion": "https://esm.sh/framer-motion@11.11.11?external=react,react-dom",
+    "framer-motion": "https://esm.sh/framer-motion@^12.24.7",
+    "@react-three/drei": "https://esm.sh/@react-three/drei@^10.7.7",
+    "three": "https://esm.sh/three@^0.182.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "@react-three/fiber": "https://esm.sh/@react-three/fiber@^9.5.0",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "this": "https://esm.sh/this@^1.1.0"
   }
 }
 </script>
-  </head>
+</head>
   <body>
     <div id="root"></div>
   </body>

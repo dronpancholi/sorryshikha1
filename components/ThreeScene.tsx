@@ -5,11 +5,20 @@ import { Float, Sphere, MeshDistortMaterial, Stars, Environment } from '@react-t
 import * as THREE from 'three';
 import { Scene } from '../types';
 
-// AbstractHeart component handles the 3D visual logic for the floating central sphere.
+// Fix for missing JSX types for Three.js elements in some environments
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      ambientLight: any;
+      pointLight: any;
+    }
+  }
+}
+
 interface AbstractHeartProps {
   active: boolean;
   color?: string;
-  timeSpentFactor: number;
+  timeSpentFactor: number; // 0 to 1
 }
 
 const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#be185d", timeSpentFactor }) => {
@@ -19,32 +28,30 @@ const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#be185d"
     if (!meshRef.current) return;
     const time = state.clock.getElapsedTime();
     
-    // Smooth 60FPS rotational logic
-    const interactionSlowdown = active ? 0.35 : 1.0;
-    const timeSlowdown = 1 - (timeSpentFactor * 0.4); 
+    // Smooth speed transitions for 60FPS feel
+    const interactionSlowdown = active ? 0.3 : 1.0;
+    const timeSlowdown = 1 - (timeSpentFactor * 0.5); 
     const finalSpeedMultiplier = interactionSlowdown * timeSlowdown;
     
-    meshRef.current.rotation.y = time * 0.15 * finalSpeedMultiplier;
-    meshRef.current.rotation.z = Math.sin(time * 0.2) * 0.1;
-    
-    // Pulse animation
-    const scaleFactor = 1 + Math.sin(time * 0.8) * 0.04;
-    meshRef.current.scale.setScalar(scaleFactor * (active ? 1.15 : 0.85));
-    meshRef.current.position.y = Math.sin(time * 0.5) * 0.1;
+    meshRef.current.rotation.y = time * 0.12 * finalSpeedMultiplier;
+    // Added a subtle breath-like scale animation
+    const scaleFactor = 1 + Math.sin(time * 0.5) * 0.05;
+    meshRef.current.scale.setScalar(scaleFactor);
+    meshRef.current.position.y = Math.sin(time * 0.6) * 0.12;
   });
 
   return (
-    <Float speed={2} rotationIntensity={0.4} floatIntensity={0.8}>
-      <Sphere ref={meshRef} args={[1, 64, 64]}>
+    <Float speed={1.8} rotationIntensity={0.5} floatIntensity={1}>
+      <Sphere ref={meshRef} args={[1, 64, 64]} scale={active ? 1.15 : 0.8}>
         <MeshDistortMaterial
           color={color}
-          speed={1.5}
-          distort={0.35}
+          speed={1.4}
+          distort={0.4}
           radius={1}
           emissive={color}
-          emissiveIntensity={0.5 + (timeSpentFactor * 0.2)}
-          roughness={0.15}
-          metalness={0.8}
+          emissiveIntensity={0.4 + (timeSpentFactor * 0.2)}
+          roughness={0.1}
+          metalness={0.7}
         />
       </Sphere>
     </Float>
@@ -97,14 +104,13 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
       <Canvas 
-        gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 0, 5], fov: 45 }}
-        dpr={[1, 2]}
       >
-        <ambientLight intensity={0.6} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} />
+        <ambientLight intensity={0.5} />
+        <pointLight position={[10, 10, 10]} intensity={2} />
         <pointLight position={[-10, -10, -10]} color={mainColor} intensity={2} />
-        <Stars radius={100} depth={50} count={2000} factor={4} saturation={0.5} fade speed={0.5} />
+        <Stars radius={120} depth={50} count={1500} factor={6} saturation={0.5} fade speed={0.4} />
         <AbstractHeart active={isWarmer} color={mainColor} timeSpentFactor={timeSpentFactor} />
         <Environment preset="night" />
       </Canvas>
