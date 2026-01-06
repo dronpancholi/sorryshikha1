@@ -2,7 +2,7 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, Environment } from '@react-three/drei';
-import * as THREE from 'three';
+import * as THREE from 'this';
 import { Scene } from '../types';
 
 // --- Abstract Orange Fluid Shader ---
@@ -73,23 +73,27 @@ const AbstractFluidShader = {
       return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
     }
 
-    // Sphere SDF
+    // Single Large Sphere SDF
     float sdSphere(vec3 p, float r) {
       return length(p) - r;
     }
 
     float map(vec3 p) {
-      // Rotation and scroll-based movement
-      float angle = uTime * 0.1;
-      p.xz *= mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-      p.y += uScroll * 0.1;
-
-      // Abstract deformation using multi-layered noise
-      float noise = snoise(p * 0.6 + uTime * 0.4) * 0.4;
-      noise += snoise(p * 1.5 - uTime * 0.2) * 0.15;
+      // Very slow rotation
+      float angle = uTime * 0.15;
+      float s = sin(angle), c = cos(angle);
+      p.xz *= mat2(c, -s, s, c);
       
-      float sphere = sdSphere(p, 1.4);
-      return sphere + noise;
+      // Vertical float based on scroll
+      p.y += uScroll * 0.05;
+
+      // Large organic displacement for "fluid" look
+      // Combines two layers of noise for expansion/contraction
+      float d = sdSphere(p, 1.8);
+      float noise = snoise(p * 0.4 + uTime * 0.3) * 0.8;
+      noise += snoise(p * 1.2 - uTime * 0.2) * 0.2;
+      
+      return d + noise;
     }
 
     vec3 calcNormal(vec3 p) {
@@ -104,17 +108,18 @@ const AbstractFluidShader = {
     }
 
     void main() {
+      // Ray setup
       vec2 uv = (vUv - 0.5) * 2.0;
       uv.x *= uResolution.x / uResolution.y;
-
-      vec3 ro = vec3(0.0, 0.0, -4.5);
+      
+      vec3 ro = vec3(0.0, 0.0, -5.0);
       vec3 rd = normalize(vec3(uv, 2.5));
 
       float t = 0.0;
       bool hit = false;
       vec3 p;
 
-      for(int i = 0; i < 70; i++) {
+      for(int i = 0; i < 60; i++) {
         p = ro + rd * t;
         float d = map(p);
         if(abs(d) < 0.001) {
@@ -122,7 +127,7 @@ const AbstractFluidShader = {
           break;
         }
         t += d;
-        if(t > 10.0) break;
+        if(t > 12.0) break;
       }
 
       vec3 color = vec3(0.0);
@@ -134,17 +139,17 @@ const AbstractFluidShader = {
         vec3 lightDir = normalize(vec3(2.0, 3.0, -5.0));
         
         float diff = max(dot(n, lightDir), 0.0);
-        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 4.0);
 
-        // Palette: Vivid Orange -> Amber -> Soft Gold
-        vec3 orange = vec3(1.0, 0.45, 0.1);
-        vec3 amber = vec3(0.8, 0.25, 0.05);
-        vec3 gold = vec3(1.0, 0.8, 0.3);
+        // Premium Palette: Deep Amber -> Burnt Orange -> Gold
+        vec3 amber = vec3(0.55, 0.27, 0.07);
+        vec3 orange = vec3(1.0, 0.55, 0.0);
+        vec3 gold = vec3(1.0, 0.84, 0.0);
 
         vec3 base = mix(amber, orange, diff);
-        color = mix(base, gold, fresnel * 0.7 + uGlow * 0.3);
+        color = mix(base, gold, fresnel * 0.6 + uGlow * 0.2);
         
-        // Final alpha for a subtle background presence
+        // Final opacity: 25% for a soft background presence
         alpha = 0.25; 
       }
 
@@ -162,17 +167,18 @@ const RaymarchedFluid: React.FC<{ scene: Scene }> = ({ scene }) => {
     uResolution: { value: new THREE.Vector2(size.width, size.height) },
     uGlow: { value: 0 },
     uScroll: { value: 0 },
-  }), []);
+  }), [size.width, size.height]);
 
   useFrame((state) => {
     if (!meshRef.current) return;
     const material = meshRef.current.material as THREE.ShaderMaterial;
     material.uniforms.uTime.value = state.clock.getElapsedTime();
     material.uniforms.uResolution.value.set(size.width, size.height);
-    material.uniforms.uScroll.value = window.scrollY * 0.05;
+    material.uniforms.uScroll.value = window.scrollY * 0.01;
 
-    const targetGlow = (scene === Scene.LOYALTY || scene === Scene.END_GAME_POPUP) ? 1.0 : 0.0;
-    material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.03);
+    // Subtly brighten during emotional peaks
+    const targetGlow = (scene === Scene.LOYALTY || scene === Scene.END_GAME_POPUP) ? 0.8 : 0.0;
+    material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.02);
   });
 
   return (
@@ -184,6 +190,7 @@ const RaymarchedFluid: React.FC<{ scene: Scene }> = ({ scene }) => {
         uniforms={uniforms}
         transparent={true}
         depthWrite={false}
+        blending={THREE.AdditiveBlending}
       />
     </mesh>
   );
@@ -200,7 +207,8 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
         camera={{ position: [0, 0, 5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
       >
-        <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={0.5} />
+        <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={0.4} />
+        {/* Changed currentScene to scene to match RaymarchedFluid props */}
         <RaymarchedFluid scene={currentScene} />
         <Environment preset="night" />
       </Canvas>
