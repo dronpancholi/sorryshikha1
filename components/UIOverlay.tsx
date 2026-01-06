@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Scene, ProgressionMessage, MemoryCard } from '../types';
-import { PROGRESSION_MESSAGES, NO_REBUTTALS, MEMORY_CARDS, CLARIFICATION_CARDS } from '../constants';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Scene, ProgressionMessage } from '../types';
+import { PROGRESSION_MESSAGES, NO_REBUTTALS, MEMORY_CARDS, CLARIFICATION_CARDS, VALUES_TEXT } from '../constants';
 import GlassCard from './GlassCard';
 
 interface UIOverlayProps {
@@ -17,7 +17,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   const [activeClarification, setActiveClarification] = useState<string | null>(null);
   const [hadToResponse, setHadToResponse] = useState(false);
   
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // New state for Values section interaction
+  const [valuesUnderstanding, setValuesUnderstanding] = useState(false);
 
   const updateScene = (newScene: Scene) => {
     setCurrentScene(newScene);
@@ -29,6 +30,16 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
       document.body.style.overflowY = 'hidden';
     }
   };
+
+  // Auto-transition effect for SCROLL transition
+  useEffect(() => {
+    if (currentScene === Scene.TRANSITION_TO_SCROLL) {
+      const timer = setTimeout(() => {
+        updateScene(Scene.PHASE_2);
+      }, 4000); // Allow time to read "Now that you're here..."
+      return () => clearTimeout(timer);
+    }
+  }, [currentScene]);
 
   const handleNoClick = () => {
     setNoCount(prev => prev + 1);
@@ -135,24 +146,23 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
           </motion.div>
         )}
 
+        {/* Transition Scene - Auto forwards to PHASE_2 */}
         {currentScene === Scene.TRANSITION_TO_SCROLL && (
           <motion.div key="transition" variants={containerVariants} initial="initial" animate="animate" exit="exit" className="h-screen flex flex-col items-center justify-center text-center p-6">
              <h2 className="text-2xl md:text-4xl font-serif font-light mb-12 opacity-80 italic">Now that you’re here… let me say everything properly.</h2>
              <motion.div 
-               animate={{ y: [0, 10, 0] }} 
-               transition={{ repeat: Infinity, duration: 2 }}
-               className="cursor-pointer flex flex-col items-center gap-4"
-               onClick={() => updateScene(Scene.PHASE_2)}
+               animate={{ opacity: [0, 1, 0], y: [0, 20] }} 
+               transition={{ duration: 2, repeat: Infinity }}
+               className="flex flex-col items-center gap-4"
              >
-               <span className="text-xs uppercase tracking-[0.4em] opacity-40">Scroll to explore</span>
-               <div className="w-[1px] h-16 bg-white/20" />
+               <div className="w-[1px] h-24 bg-gradient-to-b from-white to-transparent" />
              </motion.div>
           </motion.div>
         )}
 
         {/* Phase 2: Full Scrollable Experience */}
         {currentScene === Scene.PHASE_2 && (
-          <motion.div key="phase2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }} className="w-full flex flex-col items-center">
+          <motion.div key="phase2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.5 }} className="w-full flex flex-col items-center pb-20">
             
             {/* 1. Memory Wall */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-10 mt-20">
@@ -172,7 +182,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
 
             {/* 2. Truth Section */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
-              <motion.div variants={staggerContainer} initial="initial" whileInView="animate" viewport={{ once: true }}>
+              <motion.div variants={staggerContainer} initial="initial" whileInView="animate" viewport={{ once: true, margin: "-100px" }}>
                 <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light mb-4">I didn’t fail in love.</motion.h3>
                 <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light opacity-60">I failed in expression.</motion.h3>
                 <motion.div variants={lineVariants} className="pt-8">
@@ -260,6 +270,66 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                 <h2 className="text-3xl md:text-5xl font-serif font-light">I choose you now.</h2>
                 <h2 className="text-3xl md:text-5xl font-serif font-semibold">And I’ll keep choosing you — without comparisons.</h2>
               </div>
+            </section>
+
+            {/* C. VALUES & BELIEF SECTION (NEW CONTENT) */}
+            <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center">
+               <motion.div 
+                 initial={{ opacity: 0 }}
+                 whileInView={{ opacity: 1 }}
+                 viewport={{ once: true, margin: "-10%" }}
+                 className="max-w-3xl w-full"
+               >
+                 <h2 className="text-sm md:text-base uppercase tracking-[0.4em] opacity-40 mb-16">What I Actually Stand For</h2>
+                 
+                 <div className="space-y-12">
+                    {VALUES_TEXT.map((text, index) => (
+                      <motion.p
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1.5, delay: index * 0.8 }} // Staggered delay for pause effect
+                        viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+                        className={`font-serif text-xl md:text-3xl leading-relaxed ${index === 2 ? "text-indigo-200 font-medium scale-105" : "text-white/90"}`}
+                      >
+                        {text}
+                      </motion.p>
+                    ))}
+                 </div>
+
+                 {/* Interactive Confirmation */}
+                 <motion.div 
+                   initial={{ opacity: 0 }}
+                   whileInView={{ opacity: 1 }}
+                   viewport={{ once: true }}
+                   transition={{ delay: 6 }}
+                   className="mt-20 flex flex-col items-center"
+                 >
+                   <GlassCard className="max-w-md w-full !p-8">
+                     <p className="font-serif text-lg mb-6">Does this make sense to you?</p>
+                     <div className="flex gap-4 justify-center">
+                       <button className="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all text-sm">Yes</button>
+                       <button 
+                         onClick={() => setValuesUnderstanding(true)}
+                         className="px-6 py-2 rounded-full border border-white/20 hover:bg-white/5 transition-all text-sm opacity-70"
+                       >
+                         I want to understand more
+                       </button>
+                     </div>
+                     <AnimatePresence>
+                       {valuesUnderstanding && (
+                         <motion.p 
+                           initial={{ opacity: 0, height: 0 }}
+                           animate={{ opacity: 1, height: 'auto' }}
+                           className="mt-6 text-orange-200/80 italic text-sm"
+                         >
+                           Then I’ll explain, not defend.
+                         </motion.p>
+                       )}
+                     </AnimatePresence>
+                   </GlassCard>
+                 </motion.div>
+               </motion.div>
             </section>
 
             {/* 6. Effort Showcase */}

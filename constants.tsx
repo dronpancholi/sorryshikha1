@@ -38,3 +38,13 @@ export const CLARIFICATION_CARDS: ClarificationCard[] = [
     content: 'That no situation, no person, no moment ever put you below first place.'
   }
 ];
+
+export const VALUES_TEXT = [
+  "I don’t follow labels or movements blindly.",
+  "What I care about is how people in my life are treated.",
+  "Especially you.",
+  "For me, respect isn’t a slogan — it’s action.",
+  "Every woman in my life deserves space, voice, safety, and the chance to prove herself.",
+  "Not because of ideology.",
+  "But because that’s the standard I hold myself to."
+];
