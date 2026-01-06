@@ -6,10 +6,6 @@ import {
   PROGRESSION_MESSAGES, 
   NO_REBUTTALS, 
   MEMORY_CARDS, 
-  CLARIFICATION_CARDS, 
-  VALUES_TEXT, 
-  DOUBT_TILES, 
-  REALITY_TEXT,
   NOTICE_CARDS,
   PROMISE_CARDS,
   MICRO_MESSAGES,
@@ -27,14 +23,10 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   const [currentScene, setCurrentScene] = useState<Scene>(Scene.ENTRY);
   const [progStep, setProgStep] = useState(0);
   const [noCount, setNoCount] = useState(0);
-  const [showReassurance, setShowReassurance] = useState(false);
-  const [activeClarification, setActiveClarification] = useState<string | null>(null);
-  const [valuesUnderstanding, setValuesUnderstanding] = useState(false);
   
   // Phase 5 States
   const [activeMicroMessage, setActiveMicroMessage] = useState<string | null>(null);
   const [activeCornerMsg, setActiveCornerMsg] = useState<{ id: string, msg: string } | null>(null);
-  const [holdLine, setHoldLine] = useState<string | null>(null);
   const [openContainers, setOpenContainers] = useState<Set<string>>(new Set());
   const [extraLayerVisible, setExtraLayerVisible] = useState(false);
   const { scrollYProgress } = useScroll();
@@ -43,18 +35,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   // Notice & Promise States
   const [activeNotice, setActiveNotice] = useState<string | null>(null);
   const [activePromise, setActivePromise] = useState<string | null>(null);
-  const [revealedDoubts, setRevealedDoubts] = useState<Set<string>>(new Set());
   const [assuranceValue, setAssuranceValue] = useState(50);
-
-  // End Game Sequence
-  const [endPopupStep, setEndPopupStep] = useState(0);
-  const [endPopupResponse, setEndPopupResponse] = useState<string | null>(null);
-  const [stillHere, setStillHere] = useState(false);
 
   const updateScene = (newScene: Scene) => {
     setCurrentScene(newScene);
     onSceneChange(newScene);
-    if (newScene === Scene.PHASE_2 || newScene === Scene.END_GAME_POPUP) {
+    if (newScene === Scene.PHASE_2) {
       document.body.style.overflowY = 'auto';
       document.body.style.overflowX = 'hidden';
     } else {
@@ -82,13 +68,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
       return () => clearTimeout(timer);
     }
   }, [currentScene]);
-
-  const toggleDoubt = (id: string) => {
-    const next = new Set(revealedDoubts);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setRevealedDoubts(next);
-  };
 
   const toggleContainer = (id: string) => {
     const next = new Set(openContainers);
@@ -134,16 +113,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
     setTimeout(() => setActiveCornerMsg(null), 3000);
   };
 
-  const handleLongPress = (msg: string) => {
-    setHoldLine(msg);
-    setTimeout(() => setHoldLine(null), 3000);
-  };
-
   return (
-    <div className={`relative z-10 w-full ${currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP ? 'min-h-fit' : 'h-screen overflow-hidden'} flex flex-col items-center select-none`}>
+    <div className={`relative z-10 w-full ${currentScene === Scene.PHASE_2 ? 'min-h-fit' : 'h-screen overflow-hidden'} flex flex-col items-center select-none`}>
       
       {/* Passive Progress Indicator */}
-      {(currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP) && (
+      {currentScene === Scene.PHASE_2 && (
         <motion.div 
           className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-pink-500 to-rose-400 z-[99] origin-left shadow-[0_0_12px_rgba(236,72,153,0.4)]"
           style={{ scaleX }}
@@ -158,7 +132,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
             animate={{ opacity: 0.4, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 1.2 }}
-            className="fixed z-[95] text-[10px] uppercase tracking-widest pointer-events-none italic font-light text-pink-100"
+            className="fixed z-[95] text-[10px] uppercase tracking-widest pointer-events-none italic font-light text-pink-100 text-center"
             style={{ 
               top: `${Math.random() * 60 + 20}%`, 
               left: `${Math.random() * 60 + 20}%` 
@@ -194,7 +168,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] glass p-8 rounded-2xl text-xs uppercase tracking-[0.4em] opacity-80 pointer-events-none shadow-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] glass p-8 rounded-2xl text-xs uppercase tracking-[0.4em] opacity-80 pointer-events-none shadow-2xl text-center max-w-[280px]"
           >
             {activeCornerMsg.msg}
           </motion.div>
@@ -202,22 +176,22 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
-        {/* Phase 1 Scenes */}
+        {/* PHASE 1: Introduction */}
         {currentScene === Scene.ENTRY && (
           <motion.div key="entry" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-screen flex flex-col items-center justify-center text-center p-6">
             <motion.h1 
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.02 }}
               className="text-3xl md:text-5xl font-serif font-light mb-12 tracking-wide leading-relaxed"
             >
               Hey Shikha... <br />
-              <span className="opacity-70 text-2xl md:text-4xl">can you stay for a minute?</span>
+              <span className="opacity-70 text-2xl md:text-4xl italic">can you stay for a minute?</span>
             </motion.h1>
             <motion.button 
-              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.08)' }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.08)' }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => updateScene(Scene.PROGRESSION)} 
               className="px-14 py-4 rounded-full glass border border-white/20 tracking-[0.3em] uppercase text-xs font-light transition-all"
             >
@@ -228,7 +202,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
         )}
 
         {currentScene === Scene.PROGRESSION && PROGRESSION_MESSAGES[progStep] && (
-          <motion.div key={`prog-${progStep}`} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="h-screen flex flex-col items-center justify-center text-center p-6 cursor-pointer" onClick={nextProgression}>
+          <motion.div key={`prog-${progStep}`} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }} className="h-screen flex flex-col items-center justify-center text-center p-6 cursor-pointer" onClick={nextProgression}>
             <motion.h2 className="text-4xl md:text-6xl font-serif font-light italic opacity-90">{PROGRESSION_MESSAGES[progStep].text}</motion.h2>
             <TapCue text="Tap to continue" />
           </motion.div>
@@ -240,22 +214,67 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               <h3 className="text-2xl font-serif text-center mb-12 leading-relaxed">
                 {noCount === 0 ? "Do you know how important you are to me?" : NO_REBUTTALS[(noCount - 1) % NO_REBUTTALS.length]}
               </h3>
-              <div className="flex flex-col sm:flex-row gap-5 justify-center items-center h-24">
-                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => updateScene(Scene.LOYALTY)} className="px-12 py-3 rounded-full bg-white text-black font-semibold hover:bg-pink-50 transition-colors">Yes</motion.button>
+              <div className="flex flex-col sm:flex-row gap-5 justify-center items-center min-h-[100px]">
+                <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => updateScene(Scene.LOYALTY)} className="px-12 py-3 rounded-full bg-white text-black font-semibold hover:bg-pink-50 transition-colors">Yes</motion.button>
                 <motion.button whileHover={{ x: [0, -5, 5, 0] }} onClick={handleNoClick} style={{ transform: `scale(${Math.max(0.4, 1 - noCount * 0.15)})`, opacity: Math.max(0.3, 1 - noCount * 0.1) }} className="px-10 py-3 rounded-full border border-white/30 text-white/70 hover:bg-white/5 transition-all">
                   {noCount > 0 ? "Not yet" : "No"}
                 </motion.button>
-              </div>
-              <div className="text-center mt-8">
-                <TapCue text="Choose with your heart" />
               </div>
             </GlassCard>
           </motion.div>
         )}
 
-        {/* Phase 2+ Scrollable Experience */}
-        {(currentScene === Scene.PHASE_2 || currentScene === Scene.END_GAME_POPUP) && (
-          <motion.div key="phase2plus" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2 }} className="w-full flex flex-col items-center pb-80">
+        {/* MISSING SCENE 1: Loyalty */}
+        {currentScene === Scene.LOYALTY && (
+          <motion.div key="loyalty" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} className="h-screen flex flex-col items-center justify-center text-center p-6 max-w-2xl mx-auto">
+            <motion.h2 className="text-3xl md:text-5xl font-serif font-light italic mb-12 leading-tight">
+              I’m so glad you feel that, because sometimes I worry I don’t say it enough.
+            </motion.h2>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              onClick={() => updateScene(Scene.AFFIRMATION)}
+              className="px-14 py-4 rounded-full glass border border-white/10 tracking-[0.3em] uppercase text-xs font-light"
+            >
+              Wait, one more thing
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* MISSING SCENE 2: Affirmation */}
+        {currentScene === Scene.AFFIRMATION && (
+          <motion.div key="affirmation" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="h-screen flex flex-col items-center justify-center text-center p-6 max-w-xl mx-auto">
+            <motion.div className="glass p-12 rounded-[3rem] border-pink-500/20 shadow-2xl">
+              <p className="text-xl md:text-2xl font-serif italic mb-8 opacity-80 leading-relaxed">
+                "I want you to know that choosing you isn't something I did once. It's something I do every single day."
+              </p>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                onClick={() => updateScene(Scene.TRANSITION_TO_SCROLL)}
+                className="text-[10px] uppercase tracking-[0.5em] opacity-40 hover:opacity-100 transition-all border-b border-white/10 pb-2"
+              >
+                Look deeper
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* MISSING SCENE 3: Transition */}
+        {currentScene === Scene.TRANSITION_TO_SCROLL && (
+          <motion.div key="transition" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-screen flex flex-col items-center justify-center text-center p-6">
+            <motion.div 
+              animate={{ y: [0, 15, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <div className="w-[1px] h-24 bg-gradient-to-b from-transparent via-pink-500 to-transparent opacity-40" />
+              <span className="text-[10px] uppercase tracking-[0.8em] opacity-30 font-light">Scroll down</span>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* PHASE 2: The Deep Experience (Scrollable) */}
+        {currentScene === Scene.PHASE_2 && (
+          <motion.div key="phase2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.5 }} className="w-full flex flex-col items-center pb-80">
             
             {/* Memory Wall */}
             <motion.section {...sectionVariants} className="min-h-screen w-full flex flex-col items-center justify-center p-10 mt-24">
@@ -264,7 +283,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                 {MEMORY_CARDS.map((card, idx) => (
                   <motion.div
                     key={card.id}
-                    whileHover={{ scale: 1.05, rotate: idx % 2 === 0 ? 1 : -1, borderColor: "rgba(236,72,153,0.3)" }}
+                    whileHover={{ scale: 1.03, rotate: idx % 2 === 0 ? 0.5 : -0.5, borderColor: "rgba(236,72,153,0.3)" }}
                     className="glass p-14 rounded-3xl text-center border border-white/10 flex flex-col items-center justify-center transition-all cursor-default shadow-xl"
                   >
                     <span className="text-xl md:text-2xl font-serif italic text-pink-50">{card.text}</span>
@@ -276,7 +295,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
             {/* Optional Containers */}
             <motion.section {...sectionVariants} className="min-h-[60vh] w-full flex flex-col items-center justify-center p-10">
               <motion.div 
-                whileHover={{ scale: 1.03 }}
+                whileHover={{ scale: 1.02 }}
                 onClick={() => toggleContainer('opt1')} 
                 className="glass p-10 rounded-3xl cursor-pointer max-w-sm w-full text-center border-white/5 hover:border-pink-500/20 transition-all shadow-lg"
               >
@@ -299,9 +318,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                 {NOTICE_CARDS.map((card) => (
                   <motion.div 
                     key={card.id}
-                    whileHover={{ scale: 1.04, y: -5, borderColor: "rgba(236,72,153,0.4)" }}
+                    whileHover={{ scale: 1.03, borderColor: "rgba(236,72,153,0.4)" }}
                     onClick={() => setActiveNotice(activeNotice === card.id ? null : card.id)}
-                    className="glass p-12 rounded-[2.5rem] cursor-pointer border border-white/10 flex flex-col items-center justify-center min-h-[180px] transition-all shadow-xl hover:shadow-pink-900/20"
+                    className="glass p-12 rounded-[2.5rem] cursor-pointer border border-white/10 flex flex-col items-center justify-center min-h-[180px] transition-all shadow-xl"
                   >
                     <AnimatePresence mode="wait">
                       {activeNotice === card.id ? (
@@ -320,14 +339,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
               </div>
             </motion.section>
 
-            {/* If I Ever Hurt You Again */}
+            {/* Promises */}
             <motion.section {...sectionVariants} className="min-h-screen w-full flex flex-col items-center justify-center p-8 text-center">
               <h2 className="text-sm uppercase tracking-[0.5em] opacity-40 mb-24">My Promise to You</h2>
               <div className="flex flex-col gap-8 max-w-2xl w-full">
                 {PROMISE_CARDS.map((card) => (
                   <motion.div 
                     key={card.id}
-                    whileHover={{ scale: 1.02, x: 8, backgroundColor: "rgba(255,255,255,0.04)" }}
+                    whileHover={{ scale: 1.01, x: 5, backgroundColor: "rgba(255,255,255,0.04)" }}
                     onClick={() => setActivePromise(activePromise === card.id ? null : card.id)}
                     className="glass p-14 rounded-3xl cursor-pointer border border-white/10 text-center transition-all shadow-xl"
                   >
@@ -350,7 +369,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
 
             {/* Assurance Slider */}
             <motion.section {...sectionVariants} className="min-h-screen w-full flex flex-col items-center justify-center p-8 text-center">
-               <GlassCard className="max-w-md w-full !p-14 hover:shadow-2xl transition-all border-pink-500/10">
+               <GlassCard className="max-w-md w-full !p-14 border-pink-500/10">
                   <h3 className="text-xl font-serif mb-14 tracking-wide text-white/80">How sure am I about you?</h3>
                   <div className="relative w-full h-12 flex items-center px-4">
                     <input 
@@ -359,15 +378,15 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                       max="100" 
                       value={assuranceValue} 
                       onChange={(e) => setAssuranceValue(parseInt(e.target.value))}
-                      className="w-full h-[2px] bg-white/20 rounded-full appearance-none cursor-pointer accent-pink-500 hover:accent-pink-400 transition-colors"
+                      className="w-full h-[2px] bg-white/20 rounded-full appearance-none cursor-pointer accent-pink-500"
                     />
                   </div>
                   <div className="flex justify-between mt-5 text-[10px] uppercase tracking-widest opacity-40 font-medium">
-                    <span>Certain</span>
-                    <span>Every single day</span>
+                    <span>Fixed</span>
+                    <span>Always</span>
                   </div>
                   <motion.p 
-                    animate={{ scale: [1, 1.02, 1], opacity: assuranceValue > 70 ? 1 : 0.5 }}
+                    animate={{ scale: [1, 1.02, 1] }}
                     transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
                     className="mt-14 font-serif italic text-pink-200 text-xl"
                   >
@@ -376,7 +395,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                </GlassCard>
             </motion.section>
 
-            {/* Extra Layer */}
+            {/* Final Footer Reveal */}
             <motion.section {...sectionVariants} className="mt-48 text-center pb-60">
                 <motion.button 
                   whileHover={{ scale: 1.1, opacity: 1, letterSpacing: '0.6em' }}
