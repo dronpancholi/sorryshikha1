@@ -6,31 +6,23 @@ import { Scene } from './types';
 
 const App: React.FC = () => {
   const [currentScene, setCurrentScene] = useState<Scene>(Scene.ENTRY);
-  const [isPaused, setIsPaused] = useState(false);
-  const [dimLevel, setDimLevel] = useState(0);
 
   useEffect(() => {
-    // Reset scroll position on refresh
+    // Reset scroll position on refresh for a fresh start
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#0a0a0c]`}>
+    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#0a0a0c] selection:bg-pink-500/30`}>
       {/* 3D Background Layer */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#0a0a0c]" />}>
-        <ThreeScene currentScene={currentScene} isPaused={isPaused} />
+        <ThreeScene currentScene={currentScene} />
       </Suspense>
 
       {/* UI Interaction Layer */}
-      <UIOverlay 
-        onSceneChange={setCurrentScene} 
-        isPaused={isPaused} 
-        setIsPaused={setIsPaused} 
-        dimLevel={dimLevel} 
-        setDimLevel={setDimLevel} 
-      />
+      <UIOverlay onSceneChange={setCurrentScene} />
       
-      {/* Subtle Noise Texture */}
+      {/* Subtle Noise Texture for aesthetic depth */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
     </div>
   );
