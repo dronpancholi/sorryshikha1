@@ -1,5 +1,5 @@
 
-import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile, NoticeCard, PromiseCard, CornerNode, OptionalContainer } from './types';
+import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile, NoticeCard, PromiseCard } from './types';
 
 export const PROGRESSION_MESSAGES: ProgressionMessage[] = [
   { id: 1, text: "I messed up." },
@@ -77,30 +77,3 @@ export const PROMISE_CARDS: PromiseCard[] = [
   { id: 'slow', title: 'I’ll slow down', content: 'If things feel heavy, I will match your pace, not force my own.' },
   { id: 'protect', title: 'I’ll protect your feelings', content: 'Your emotional safety is a boundary I will never cross again.' }
 ];
-
-// Phase 5 Additions
-export const MICRO_MESSAGES = [
-  "Still here.",
-  "No rush.",
-  "I meant it.",
-  "Take your time.",
-  "Always choosing you.",
-  "You are safe here.",
-  "Breathe slowly.",
-  "I'm listening."
-];
-
-export const CORNER_NODES: CornerNode[] = [
-  { id: 'tl', position: 'top-left', message: "I'm holding space for you." },
-  { id: 'tr', position: 'top-right', message: "You deserve this peace." },
-  { id: 'bl', position: 'bottom-left', message: "No expectations, just presence." },
-  { id: 'br', position: 'bottom-right', message: "I appreciate you being here." }
-];
-
-export const OPTIONAL_CONTAINERS: OptionalContainer[] = [
-  { id: 'opt1', title: "A quiet thought", content: "Sometimes words aren't enough, but I'll keep trying anyway." },
-  { id: 'opt2', title: "Why this matters", content: "Because building something for you feels more natural than anything else." },
-  { id: 'opt3', title: "The silence", content: "Silence between us should feel like a blanket, not a wall." }
-];
-
-export const EXTRA_LAYER_CONTENT = "I wanted this to be a place you could come back to whenever you felt a bit of doubt. It's not a one-time thing. It's a standing promise.";

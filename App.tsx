@@ -8,12 +8,12 @@ const App: React.FC = () => {
   const [currentScene, setCurrentScene] = useState<Scene>(Scene.ENTRY);
 
   useEffect(() => {
-    // Reset scroll position on refresh for a fresh start
+    // Reset scroll position on refresh
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#0a0a0c] selection:bg-pink-500/30`}>
+    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#0a0a0c]`}>
       {/* 3D Background Layer */}
       <Suspense fallback={<div className="fixed inset-0 bg-[#0a0a0c]" />}>
         <ThreeScene currentScene={currentScene} />
@@ -22,7 +22,7 @@ const App: React.FC = () => {
       {/* UI Interaction Layer */}
       <UIOverlay onSceneChange={setCurrentScene} />
       
-      {/* Subtle Noise Texture for aesthetic depth */}
+      {/* Subtle Noise Texture */}
       <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
     </div>
   );
