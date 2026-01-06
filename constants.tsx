@@ -1,5 +1,5 @@
 
-import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile } from './types';
+import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile, NoticeCard, PromiseCard } from './types';
 
 export const PROGRESSION_MESSAGES: ProgressionMessage[] = [
   { id: 1, text: "I messed up." },
@@ -63,4 +63,17 @@ export const REALITY_TEXT = [
   "But I chose to build this.",
   "Not because it was easier.",
   "Because you matter more than comfort."
+];
+
+export const NOTICE_CARDS: NoticeCard[] = [
+  { id: 'pres', title: 'Your presence', content: 'The air feels different when you are around.' },
+  { id: 'care', title: 'The way you care', content: 'It is subtle, but it never goes unnoticed.' },
+  { id: 'hon', title: 'Your honesty', content: 'It challenges me to be better every single day.' },
+  { id: 'str', title: 'Your strength', content: 'You carry yourself with a grace I deeply admire.' }
+];
+
+export const PROMISE_CARDS: PromiseCard[] = [
+  { id: 'listen', title: 'I’ll listen first', content: 'I will pause before I react, ensuring your voice is fully heard.' },
+  { id: 'slow', title: 'I’ll slow down', content: 'If things feel heavy, I will match your pace, not force my own.' },
+  { id: 'protect', title: 'I’ll protect your feelings', content: 'Your emotional safety is a boundary I will never cross again.' }
 ];

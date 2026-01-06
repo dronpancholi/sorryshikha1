@@ -31,3 +31,15 @@ export interface DoubtTile {
   title: string;
   revealedText: string;
 }
+
+export interface NoticeCard {
+  id: string;
+  title: string;
+  content: string;
+}
+
+export interface PromiseCard {
+  id: string;
+  title: string;
+  content: string;
+}

@@ -1,7 +1,7 @@
 
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Float, Stars, Environment, Points, PointMaterial } from '@react-three/drei';
+import { Float, Stars, Environment, MeshTransmissionMaterial } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from '../types';
 
@@ -14,93 +14,67 @@ declare global {
   }
 }
 
-interface ParticleHeartProps {
-  scene: Scene;
-  isGlowing?: boolean;
-}
-
-const ParticleHeart: React.FC<ParticleHeartProps> = ({ scene, isGlowing }) => {
-  const count = 4000;
+const FluidHeart: React.FC<{ scene: Scene; isGlowing?: boolean }> = ({ scene, isGlowing }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
   
-  // Create rich gradient particles
-  const [positions, colors] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const cols = new Float32Array(count * 3);
-    const colorPalette = [
-      new THREE.Color("#5d4037"), // Deep Brown
-      new THREE.Color("#a36846"), // Bronze
-      new THREE.Color("#d4af37"), // Gold
-      new THREE.Color("#f97316")  // Warm Orange
-    ];
+  // Custom geometry for an organic heart-like shape
+  const heartShape = useMemo(() => {
+    const shape = new THREE.Shape();
+    const x = 0, y = 0;
+    shape.moveTo(x + 5, y + 5);
+    shape.bezierCurveTo(x + 5, y + 5, x + 4, y, x, y);
+    shape.bezierCurveTo(x - 6, y, x - 6, y + 7, x - 6, y + 7);
+    shape.bezierCurveTo(x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19);
+    shape.bezierCurveTo(x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7);
+    shape.bezierCurveTo(x + 16, y + 7, x + 16, y, x + 10, y);
+    shape.bezierCurveTo(x + 7, y, x + 5, y + 5, x + 5, y + 5);
     
-    for (let i = 0; i < count; i++) {
-      const t = Math.random() * Math.PI * 2;
-      
-      // Parametric heart formula
-      let x = 16 * Math.pow(Math.sin(t), 3);
-      let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
-      let z = (Math.random() - 0.5) * 8;
-
-      x /= 12;
-      y /= 12;
-      z /= 12;
-
-      // Add volumetric noise
-      const noise = 0.5;
-      pos[i * 3] = x + (Math.random() - 0.5) * noise;
-      pos[i * 3 + 1] = y + (Math.random() - 0.5) * noise;
-      pos[i * 3 + 2] = z + (Math.random() - 0.5) * noise;
-
-      // Assign random color from palette
-      const col = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-      cols[i * 3] = col.r;
-      cols[i * 3 + 1] = col.g;
-      cols[i * 3 + 2] = col.b;
-    }
-    return [pos, cols];
+    const extrudeSettings = { depth: 4, bevelEnabled: true, bevelSegments: 12, steps: 2, bevelSize: 2, bevelThickness: 4 };
+    const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    geometry.center();
+    geometry.rotateX(Math.PI); // Flip it right side up
+    return geometry;
   }, []);
 
-  const pointsRef = useRef<THREE.Points>(null);
-  const materialRef = useRef<any>(null);
-
   useFrame((state) => {
-    if (!pointsRef.current) return;
+    if (!meshRef.current) return;
     const time = state.clock.getElapsedTime();
     
-    // Slow down in specific states
+    // Liquid undulation logic
     const isSlower = scene === Scene.QUESTION_1 || scene === Scene.AFFIRMATION || scene === Scene.END_GAME_POPUP;
-    const speedMult = isSlower ? 0.3 : 1.0;
+    const speedMult = isSlower ? 0.4 : 1.0;
 
-    // Breathing
-    const breathe = 1 + Math.sin(time * 1.2 * speedMult) * 0.04;
-    pointsRef.current.scale.set(breathe, breathe, breathe);
+    // Rhythmic pulsing
+    const breathe = 0.15 + Math.sin(time * 0.8 * speedMult) * 0.008;
+    meshRef.current.scale.set(breathe, breathe, breathe);
     
-    // Rotation
-    pointsRef.current.rotation.y = time * 0.08 * speedMult;
-    pointsRef.current.rotation.z = Math.sin(time * 0.4) * 0.03;
-
-    // Pulse opacity or size based on glow
-    if (materialRef.current) {
-      const targetOpacity = isGlowing ? 1.0 : 0.7;
-      materialRef.current.opacity = THREE.MathUtils.lerp(materialRef.current.opacity, targetOpacity, 0.1);
-      materialRef.current.size = THREE.MathUtils.lerp(materialRef.current.size, isGlowing ? 0.06 : 0.04, 0.1);
-    }
+    // Slow rotation
+    meshRef.current.rotation.y = time * 0.12 * speedMult;
+    meshRef.current.rotation.z = Math.sin(time * 0.3) * 0.05;
+    
+    // Interactive tilt response could be added here by passing mouse coords
   });
 
   return (
-    <Float speed={1.2} rotationIntensity={0.2} floatIntensity={0.4}>
-      <Points ref={pointsRef} positions={positions} colors={colors} stride={3} frustumCulled={false}>
-        <PointMaterial
-          ref={materialRef}
-          transparent
-          vertexColors
-          size={0.04}
-          sizeAttenuation={true}
-          depthWrite={false}
-          opacity={0.7}
-          blending={THREE.AdditiveBlending}
+    <Float speed={1} rotationIntensity={0.2} floatIntensity={0.3}>
+      <mesh ref={meshRef} geometry={heartShape}>
+        <MeshTransmissionMaterial
+          backside
+          samples={8}
+          thickness={3}
+          roughness={0.15}
+          anisotropy={0.1}
+          distortion={0.5}
+          distortionScale={0.3}
+          temporalDistortion={0.1}
+          clearcoat={0.8}
+          attenuationDistance={2}
+          attenuationColor="#5d4037" // Cocoa Brown
+          color={isGlowing ? "#d4af37" : "#a36846"} // Gold vs Bronze
+          emissive={isGlowing ? "#f97316" : "#5d4037"}
+          emissiveIntensity={isGlowing ? 0.8 : 0.3}
         />
-      </Points>
+      </mesh>
     </Float>
   );
 };
@@ -116,16 +90,16 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
 
   return (
     <div className="fixed inset-0 z-0">
-      <Canvas camera={{ position: [0, 0, 5], fov: 50 }}>
-        <ambientLight intensity={0.4} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} color="#fff" />
-        <pointLight position={[-10, -5, -5]} color={mainColor} intensity={2} />
+      <Canvas camera={{ position: [0, 0, 10], fov: 40 }}>
+        <ambientLight intensity={0.5} />
+        <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} color="#fff" />
+        <pointLight position={[-10, -5, -5]} color={mainColor} intensity={2.5} />
         
-        <Stars radius={100} depth={50} count={3500} factor={4} saturation={0} fade speed={0.4} />
+        <Stars radius={100} depth={50} count={2500} factor={4} saturation={0} fade speed={0.3} />
         
-        <ParticleHeart scene={currentScene} isGlowing={currentScene === Scene.LOYALTY || currentScene === Scene.END_GAME_POPUP} />
+        <FluidHeart scene={currentScene} isGlowing={currentScene === Scene.LOYALTY || currentScene === Scene.END_GAME_POPUP} />
         
-        <Environment preset="night" />
+        <Environment preset="apartment" />
       </Canvas>
     </div>
   );
