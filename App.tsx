@@ -13,9 +13,9 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#0a0a0c]`}>
+    <div className={`relative w-full ${currentScene === Scene.PHASE_2 ? 'min-h-screen overflow-y-auto' : 'h-screen overflow-hidden'} bg-[#070708] selection:bg-pink-500/20`}>
       {/* 3D Background Layer */}
-      <Suspense fallback={<div className="fixed inset-0 bg-[#0a0a0c]" />}>
+      <Suspense fallback={<div className="fixed inset-0 bg-[#070708]" />}>
         <ThreeScene currentScene={currentScene} />
       </Suspense>
 
@@ -23,7 +23,7 @@ const App: React.FC = () => {
       <UIOverlay onSceneChange={setCurrentScene} />
       
       {/* Subtle Noise Texture */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.04] z-[100] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
     </div>
   );
 };
