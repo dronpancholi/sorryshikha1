@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sphere, MeshDistortMaterial, Stars, Environment } from '@react-three/drei';
@@ -70,7 +69,7 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
       <Canvas 
         dpr={[1, 2]} 
         camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{ antialias: true }}
+        gl={{ antialias: true, alpha: true }}
       >
         <ambientLight intensity={0.6} />
         <pointLight position={[10, 10, 10]} intensity={1.5} />

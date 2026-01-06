@@ -1,4 +1,3 @@
-
 export enum Scene {
   ENTRY = 'ENTRY',
   PROGRESSION = 'PROGRESSION',
@@ -18,6 +17,7 @@ export interface ProgressionMessage {
 export interface MemoryCard {
   id: number;
   text: string;
+  content: string;
 }
 
 export interface ClarificationCard {

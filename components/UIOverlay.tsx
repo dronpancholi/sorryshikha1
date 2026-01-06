@@ -10,7 +10,8 @@ import {
   DOUBT_TILES, 
   REALITY_TEXT,
   NOTICE_CARDS,
-  PROMISE_CARDS
+  PROMISE_CARDS,
+  COMMITMENT_TEXT
 } from '../constants';
 import GlassCard from './GlassCard';
 
@@ -24,7 +25,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   const [noCount, setNoCount] = useState(0);
   const [showReassurance, setShowReassurance] = useState(false);
   const [activeClarification, setActiveClarification] = useState<string | null>(null);
-  const [valuesUnderstanding, setValuesUnderstanding] = useState(false);
+  const [activeMemory, setActiveMemory] = useState<number | null>(null);
   
   // Notice & Promise States
   const [activeNotice, setActiveNotice] = useState<string | null>(null);
@@ -32,10 +33,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
   const [revealedDoubts, setRevealedDoubts] = useState<Set<string>>(new Set());
   const [assuranceValue, setAssuranceValue] = useState(50);
 
+  // New Phase Interaction States
+  const [valuesConfirmation, setValuesConfirmation] = useState<'yes' | 'more' | null>(null);
+  const [finalInteraction, setFinalInteraction] = useState<'yes' | 'time' | null>(null);
+
   // End Game Sequence
   const [endPopupStep, setEndPopupStep] = useState(0);
-  const [endPopupResponse, setEndPopupResponse] = useState<string | null>(null);
-  const [stillHere, setStillHere] = useState(false);
 
   const updateScene = (newScene: Scene) => {
     setCurrentScene(newScene);
@@ -57,13 +60,6 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
       return () => clearTimeout(timer);
     }
   }, [currentScene]);
-
-  const toggleDoubt = (id: string) => {
-    const next = new Set(revealedDoubts);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setRevealedDoubts(next);
-  };
 
   const handleNoClick = () => setNoCount(prev => prev + 1);
 
@@ -200,10 +196,27 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                 {MEMORY_CARDS.map((card) => (
                   <motion.div
                     key={card.id}
+                    onClick={() => setActiveMemory(activeMemory === card.id ? null : card.id)}
                     whileHover={{ scale: 1.02, rotate: 1 }}
-                    className="glass p-12 rounded-2xl text-center border border-white/10 flex flex-col items-center justify-center transition-all cursor-default"
+                    className="glass p-12 rounded-2xl text-center border border-white/10 flex flex-col items-center justify-center transition-all cursor-pointer"
                   >
-                    <span className="text-xl md:text-2xl font-serif italic">{card.text}</span>
+                    <AnimatePresence mode="wait">
+                      {activeMemory === card.id ? (
+                         <motion.p 
+                           key="content"
+                           initial={{ opacity: 0 }} 
+                           animate={{ opacity: 1 }}
+                           className="text-xl font-serif italic text-white/90"
+                         >
+                           {card.content}
+                         </motion.p>
+                      ) : (
+                        <motion.div key="title" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                          <span className="text-xl md:text-2xl font-serif italic">{card.text}</span>
+                          <TapCue text="Tap to open" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 ))}
               </div>
@@ -239,11 +252,9 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
             {/* Truth Section */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
               <motion.div initial="initial" whileInView="animate" viewport={{ once: true, margin: "-100px" }} transition={{ staggerChildren: 1.5 }}>
-                <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light mb-4">I didn’t fail in love.</motion.h3>
-                <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light opacity-60">I failed in expression.</motion.h3>
-                <motion.div variants={lineVariants} className="pt-8">
-                  <span className="text-lg md:text-xl font-medium tracking-widest uppercase">I'm owning that.</span>
-                </motion.div>
+                <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light mb-4">I didn’t fail in how I felt.</motion.h3>
+                <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light mb-4 opacity-80">I failed in how I expressed it.</motion.h3>
+                <motion.h3 variants={lineVariants} className="text-2xl md:text-4xl font-serif font-light opacity-60">And I take responsibility for that.</motion.h3>
               </motion.div>
             </section>
 
@@ -274,6 +285,46 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                   </motion.div>
                 ))}
               </div>
+            </section>
+
+            {/* SECTION 4: Values & Intent */}
+            <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
+              <h2 className="text-sm uppercase tracking-[0.5em] opacity-40 mb-10">What I Actually Stand For</h2>
+              <motion.div 
+                initial="initial" 
+                whileInView="animate" 
+                viewport={{ once: true, margin: "-100px" }} 
+                transition={{ staggerChildren: 2 }}
+                className="max-w-2xl w-full space-y-6"
+              >
+                {VALUES_TEXT.map((text, idx) => (
+                   <motion.p 
+                     key={idx} 
+                     variants={{ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }}
+                     className="text-xl md:text-2xl font-serif font-light leading-relaxed"
+                   >
+                     {text}
+                   </motion.p>
+                ))}
+              </motion.div>
+            </section>
+
+            {/* SECTION 5: Confirmation */}
+            <section className="w-full flex flex-col items-center justify-center p-6 py-20">
+              <GlassCard className="max-w-md w-full text-center">
+                <h3 className="text-xl font-serif mb-8">Does this make sense to you?</h3>
+                <div className="flex flex-col gap-4">
+                  <button onClick={() => setValuesConfirmation('yes')} className={`py-4 rounded-xl transition-all ${valuesConfirmation === 'yes' ? 'bg-white text-black' : 'glass hover:bg-white/10'}`}>Yes</button>
+                  <button onClick={() => setValuesConfirmation('more')} className={`py-4 rounded-xl transition-all ${valuesConfirmation === 'more' ? 'bg-white text-black' : 'glass hover:bg-white/10'}`}>I want to understand more</button>
+                </div>
+                <AnimatePresence>
+                  {valuesConfirmation === 'more' && (
+                    <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-8 text-pink-200 italic">
+                      Then I’ll explain, not defend.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </GlassCard>
             </section>
 
             {/* Promises */}
@@ -330,17 +381,50 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ onSceneChange }) => {
                </GlassCard>
             </section>
 
+            {/* SECTION 6: Commitment Text */}
+            <section className="min-h-[50vh] w-full flex flex-col items-center justify-center p-6 text-center space-y-8">
+              {COMMITMENT_TEXT.map((text, idx) => (
+                <motion.p 
+                  key={idx}
+                  initial={{ opacity: 0 }} 
+                  whileInView={{ opacity: 1 }} 
+                  transition={{ duration: 1.5, delay: idx * 0.5 }} 
+                  className="text-2xl md:text-3xl font-serif italic text-white/90"
+                >
+                  {text}
+                </motion.p>
+              ))}
+            </section>
+
             {/* Reality Section */}
             <section className="min-h-screen w-full flex flex-col items-center justify-center p-6 text-center space-y-12">
               <div className="max-w-2xl w-full space-y-8">
                 {REALITY_TEXT.map((text, idx) => (
-                  <motion.p key={idx} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: idx * 0.3 }} className={`font-serif text-xl md:text-3xl ${idx === 5 ? "text-pink-300" : "opacity-50"}`}>{text}</motion.p>
+                  <motion.p key={idx} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ delay: idx * 0.3 }} className={`font-serif text-xl md:text-3xl ${idx >= REALITY_TEXT.length - 2 ? "text-pink-300" : "opacity-50"}`}>{text}</motion.p>
                 ))}
               </div>
             </section>
 
+            {/* SECTION 8: Final Interaction */}
+            <section className="min-h-[50vh] w-full flex flex-col items-center justify-center p-6 text-center pb-20">
+              <GlassCard className="max-w-md w-full">
+                <h3 className="text-xl font-serif mb-10">Do you want me to keep showing up like this?</h3>
+                <div className="flex gap-4 mb-8">
+                  <button onClick={() => setFinalInteraction('yes')} className={`flex-1 py-4 rounded-xl transition-all ${finalInteraction === 'yes' ? 'bg-white text-black' : 'glass hover:bg-white/10'}`}>Yes</button>
+                  <button onClick={() => setFinalInteraction('time')} className={`flex-1 py-4 rounded-xl transition-all ${finalInteraction === 'time' ? 'bg-white text-black' : 'glass hover:bg-white/10'}`}>Take your time</button>
+                </div>
+                <AnimatePresence>
+                  {finalInteraction === 'time' && (
+                    <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-lg font-serif italic">
+                      I will.
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </GlassCard>
+            </section>
+
             {/* End Sequence Trigger */}
-            <section className="min-h-screen w-full flex flex-col items-center justify-center p-12 text-center">
+            <section className="w-full flex flex-col items-center justify-center p-12 text-center">
               <AnimatePresence>
                 {currentScene === Scene.PHASE_2 && (
                   <button onClick={() => updateScene(Scene.END_GAME_POPUP)} className="px-16 py-5 rounded-full glass border border-white/20 hover:border-white/60 transition-all tracking-[0.4em] uppercase text-xs font-light">

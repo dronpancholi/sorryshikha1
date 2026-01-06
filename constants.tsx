@@ -1,4 +1,3 @@
-
 import { ProgressionMessage, MemoryCard, ClarificationCard, DoubtTile, NoticeCard, PromiseCard } from './types';
 
 export const PROGRESSION_MESSAGES: ProgressionMessage[] = [
@@ -15,10 +14,10 @@ export const NO_REBUTTALS = [
 ];
 
 export const MEMORY_CARDS: MemoryCard[] = [
-  { id: 1, text: "Choosing you" },
-  { id: 2, text: "Trusting you" },
-  { id: 3, text: "Being with you" },
-  { id: 4, text: "Standing by you" }
+  { id: 1, text: "Choosing you", content: "It was the easiest decision I've ever made." },
+  { id: 2, text: "Trusting you", content: "I never doubted your heart." },
+  { id: 3, text: "Being with you", content: "It feels like home." },
+  { id: 4, text: "Standing by you", content: "I'm not going anywhere." }
 ];
 
 export const CLARIFICATION_CARDS: ClarificationCard[] = [
@@ -43,10 +42,16 @@ export const VALUES_TEXT = [
   "I don’t follow labels or movements blindly.",
   "What I care about is how people in my life are treated.",
   "Especially you.",
-  "For me, respect isn’t a slogan — it’s action.",
+  "Respect, for me, is action — not slogans.",
   "Every woman in my life deserves space, voice, safety, and the chance to prove herself.",
   "Not because of ideology.",
-  "But because that’s the standard I hold myself to."
+  "Because that’s the standard I hold myself to."
+];
+
+export const COMMITMENT_TEXT = [
+  "I chose you before.",
+  "I choose you now.",
+  "And I’ll keep choosing you — without comparisons."
 ];
 
 export const DOUBT_TILES: DoubtTile[] = [
@@ -62,7 +67,8 @@ export const REALITY_TEXT = [
   "I still have around 70% of the syllabus left.",
   "But I chose to build this.",
   "Not because it was easier.",
-  "Because you matter more than comfort."
+  "Because you matter more than comfort.",
+  "But I didn’t want this to stay unsaid."
 ];
 
 export const NOTICE_CARDS: NoticeCard[] = [
