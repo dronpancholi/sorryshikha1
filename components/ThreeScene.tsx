@@ -1,217 +1,54 @@
 
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars, Environment } from '@react-three/drei';
+import React, { useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Float, Sphere, MeshDistortMaterial, Stars, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { Scene } from '../types';
 
-// --- Fluid Heart Shader ---
-const HeartFluidShader = {
-  uniforms: {
-    uTime: { value: 0 },
-    uResolution: { value: new THREE.Vector2() },
-    uGlow: { value: 0 },
-    uScroll: { value: 0 },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+// Fix for missing JSX types for Three.js elements in some environments
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      ambientLight: any;
+      pointLight: any;
     }
-  `,
-  fragmentShader: `
-    varying vec2 vUv;
-    uniform float uTime;
-    uniform vec2 uResolution;
-    uniform float uGlow;
-    uniform float uScroll;
+  }
+}
 
-    // --- 3D Simplex Noise ---
-    vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
-    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
-    float snoise(vec3 v){ 
-      const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
-      const vec4  D = vec4(0.0, 0.5, 1.0, 2.0);
-      vec3 i  = floor(v + dot(v, C.yyy) );
-      vec3 x0 =   v - i + dot(i, C.xxx) ;
-      vec3 g = step(x0.yzx, x0.xyz);
-      vec3 l = 1.0 - g;
-      vec3 i1 = min( g.xyz, l.zxy );
-      vec3 i2 = max( g.xyz, l.zxy );
-      vec3 x1 = x0 - i1 + C.xxx;
-      vec3 x2 = x0 - i2 + C.yyy;
-      vec3 x3 = x0 - D.yyy;
-      i = mod(i, 289.0 ); 
-      vec4 p = permute( permute( permute( 
-                 i.z + vec4(0.0, i1.z, i2.z, 1.0 ))
-               + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) 
-               + i.x + vec4(0.0, i1.x, i2.x, 1.0 ));
-      float n_ = 1.0/7.0;
-      vec3  ns = n_ * D.wyz - D.xzx;
-      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-      vec4 x_ = floor(j * ns.z);
-      vec4 y_ = floor(j - 7.0 * x_ );
-      vec4 x = x_ * ns.x + ns.yyyy;
-      vec4 y = y_ * ns.x + ns.yyyy;
-      vec4 h = 1.0 - abs(x) - abs(y);
-      vec4 b0 = vec4( x.xy, y.xy );
-      vec4 b1 = vec4( x.zw, y.zw );
-      vec4 s0 = floor(b0)*2.0 + 1.0;
-      vec4 s1 = floor(b1)*2.0 + 1.0;
-      vec4 sh = -step(h, vec4(0.0));
-      vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy ;
-      vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww ;
-      vec3 p0 = vec3(a0.xy,h.x);
-      vec3 p1 = vec3(a0.zw,h.y);
-      vec3 p2 = vec3(a1.xy,h.z);
-      vec3 p3 = vec3(a1.zw,h.w);
-      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
-      m = m * m;
-      return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
-    }
+interface AbstractHeartProps {
+  active: boolean;
+  color?: string;
+}
 
-    float map(vec3 p) {
-      // Breathing & Scaling
-      float breathe = sin(uTime * 1.2) * 0.04;
-      p /= (1.0 + breathe);
-      
-      // Center and Scroll-based positioning
-      p.y += uScroll * 0.025;
-      
-      // Gentle Rotation
-      float angle = uTime * 0.15 + uScroll * 0.05;
-      float s = sin(angle), c = cos(angle);
-      p.xz *= mat2(c, -s, s, c);
-      
-      // Heart Warp Logic
-      float x = p.x;
-      float y = p.y;
-      float z = p.z;
-      
-      float noise = snoise(p * 0.6 + uTime * 0.4) * 0.12;
-      noise += snoise(p * 1.8 - uTime * 0.2) * 0.06;
-
-      // Coordinate warping for classic heart shape
-      float h = pow(abs(x), 1.2) * 0.5;
-      // Threshold reduced to 0.7 for a smaller, centered heart
-      float d = length(vec3(p.x, p.y - h, p.z)) - (0.8 + noise);
-      
-      return d;
-    }
-
-    vec3 calcNormal(vec3 p) {
-      const float h = 0.01;
-      const vec2 k = vec2(1, -1);
-      return normalize(
-        k.xyy * map(p + k.xyy * h) +
-        k.yyx * map(p + k.yyx * h) +
-        k.yxy * map(p + k.yxy * h) +
-        k.xxx * map(p + k.xxx * h)
-      );
-    }
-
-    void main() {
-      vec2 uv = (vUv - 0.5) * 2.0;
-      uv.x *= uResolution.x / uResolution.y;
-
-      vec3 ro = vec3(0.0, 0.0, -5.0);
-      vec3 rd = normalize(vec3(uv, 3.2)); // Slightly narrower field for focus
-
-      float t = 0.0;
-      bool hit = false;
-      vec3 p;
-
-      for(int i = 0; i < 50; i++) {
-        p = ro + rd * t;
-        float d = map(p);
-        if(abs(d) < 0.01) {
-          hit = true;
-          break;
-        }
-        t += d;
-        if(t > 15.0) break;
-      }
-
-      vec3 color = vec3(0.0);
-      float alpha = 0.0;
-
-      if(hit) {
-        vec3 n = calcNormal(p);
-        vec3 viewDir = normalize(ro - p);
-        
-        float diff = max(dot(n, vec3(0.5, 0.8, -1.0)), 0.0);
-        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 4.0);
-
-        // DARK ORANGE Palette
-        vec3 darkOrange = vec3(0.25, 0.06, 0.0); // Deep base
-        vec3 midAmber = vec3(0.7, 0.25, 0.0);   // Vibrant core
-        vec3 goldHighlights = vec3(1.0, 0.65, 0.1); // Fresnel / Glow
-
-        vec3 base = mix(darkOrange, midAmber, diff);
-        color = mix(base, goldHighlights, fresnel * 0.7 + uGlow * 0.4);
-        
-        alpha = 0.3 + (fresnel * 0.3) + (uGlow * 0.1);
-      }
-
-      gl_FragColor = vec4(color, alpha);
-    }
-  `
-};
-
-const RaymarchedHeart: React.FC<{ scene: Scene }> = ({ scene }) => {
+const AbstractHeart: React.FC<AbstractHeartProps> = ({ active, color = "#ea580c" }) => {
   const meshRef = useRef<THREE.Mesh>(null);
-  const { viewport, size } = useThree();
-  const timeRef = useRef(0);
-  const speedRef = useRef(1.0);
-
-  const uniforms = useMemo(() => ({
-    uTime: { value: 0 },
-    uResolution: { value: new THREE.Vector2(size.width, size.height) },
-    uGlow: { value: 0 },
-    uScroll: { value: 0 },
-  }), [size.width, size.height]);
-
-  useFrame((state, delta) => {
+  
+  useFrame((state) => {
     if (!meshRef.current) return;
-    const material = meshRef.current.material as THREE.ShaderMaterial;
-
-    // Detect if we are in a "Popup" or "Interaction" scene to slow down
-    const isPopupScene = 
-      scene === Scene.QUESTION_1 || 
-      scene === Scene.AFFIRMATION || 
-      scene === Scene.END_GAME_POPUP;
-
-    const targetSpeed = isPopupScene ? 0.3 : 1.0;
-    speedRef.current = THREE.MathUtils.lerp(speedRef.current, targetSpeed, 0.05);
+    const time = state.clock.getElapsedTime();
     
-    // Accumulate time based on dynamic speed
-    timeRef.current += delta * speedRef.current;
+    // Slow down during interactions (active means we are in deeper scenes)
+    const speedMultiplier = active ? 0.3 : 1.0;
     
-    material.uniforms.uTime.value = timeRef.current;
-    material.uniforms.uResolution.value.set(size.width, size.height);
-    material.uniforms.uScroll.value = window.scrollY * 0.01;
-
-    // Emotional Glow transitions
-    const isAffirmation = scene === Scene.LOYALTY || scene === Scene.AFFIRMATION || scene === Scene.END_GAME_POPUP;
-    const targetGlow = isAffirmation ? 1.2 : 0.0;
-    material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.03);
+    meshRef.current.rotation.y = time * 0.15 * speedMultiplier;
+    meshRef.current.position.y = Math.sin(time * 0.8) * 0.1;
   });
 
   return (
-    <mesh ref={meshRef}>
-      <planeGeometry args={[viewport.width * 2, viewport.height * 2]} />
-      <shaderMaterial
-        vertexShader={HeartFluidShader.vertexShader}
-        fragmentShader={HeartFluidShader.fragmentShader}
-        uniforms={uniforms}
-        transparent={true}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-      />
-    </mesh>
+    <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.8}>
+      <Sphere ref={meshRef} args={[1, 64, 64]} scale={active ? 1.1 : 0.75}>
+        <MeshDistortMaterial
+          color={color}
+          speed={1.2}
+          distort={0.35}
+          radius={1}
+          emissive={color}
+          emissiveIntensity={0.3}
+          roughness={0.15}
+          metalness={0.8}
+        />
+      </Sphere>
+    </Float>
   );
 };
 
@@ -220,14 +57,25 @@ interface SceneProps {
 }
 
 const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
+  // Logic to determine color and state based on the emotional journey
+  const isWarmer = currentScene !== Scene.ENTRY && currentScene !== Scene.PROGRESSION;
+  const isDeep = currentScene === Scene.LOYALTY || currentScene === Scene.AFFIRMATION || currentScene === Scene.END_GAME_POPUP;
+  
+  // Transition from a muted indigo to a rich Dark Orange/Amber
+  const mainColor = isDeep ? "#f97316" : (isWarmer ? "#c2410c" : "#4338ca");
+
   return (
     <div className="fixed inset-0 z-0 bg-[#070708]">
-      <Canvas 
-        camera={{ position: [0, 0, 5], fov: 45 }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <Stars radius={120} depth={40} count={800} factor={4} saturation={0} fade speed={0.2} />
-        <RaymarchedHeart scene={currentScene} />
+      <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
+        <ambientLight intensity={0.5} />
+        <pointLight position={[10, 10, 10]} intensity={1.5} />
+        <pointLight position={[-10, -10, -10]} color={mainColor} intensity={1} />
+        
+        {/* Subtle background atmosphere */}
+        <Stars radius={120} depth={40} count={1200} factor={4} saturation={0} fade speed={0.5} />
+        
+        <AbstractHeart active={isWarmer} color={mainColor} />
+        
         <Environment preset="night" />
       </Canvas>
     </div>
