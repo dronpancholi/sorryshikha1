@@ -27,7 +27,7 @@ const HeartFluidShader = {
     uniform float uGlow;
     uniform float uScroll;
 
-    // --- 3D Simplex Noise for Fluidity ---
+    // --- 3D Simplex Noise ---
     vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
     vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
     float snoise(vec3 v){ 
@@ -73,44 +73,31 @@ const HeartFluidShader = {
       return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) );
     }
 
-    // --- 3D Heart SDF ---
-    float sdHeart(vec3 p) {
-      p.y -= 0.3;
-      float x = p.x;
-      float y = p.y;
-      float z = p.z;
-      // Heart Implicit Equation: (x^2 + 9/4y^2 + z^2 - 1)^3 - x^2z^3 - 9/80y^2z^3 = 0
-      // We use a simplified approximation for raymarching stability
-      float a = x*x + 2.25*y*y + z*z - 1.0;
-      return a*a*a - x*x*z*z*z - 0.1125*y*y*z*z*z;
-    }
-
-    // Better distance field for raymarching a heart
     float map(vec3 p) {
-      // Rotation & Breathing
-      float breathe = sin(uTime * 1.5) * 0.05;
-      float angle = uTime * 0.2 + uScroll * 0.05;
+      // Breathing & Scaling
+      float breathe = sin(uTime * 1.2) * 0.04;
+      p /= (1.0 + breathe);
+      
+      // Center and Scroll-based positioning
+      p.y += uScroll * 0.025;
+      
+      // Gentle Rotation
+      float angle = uTime * 0.15 + uScroll * 0.05;
       float s = sin(angle), c = cos(angle);
       p.xz *= mat2(c, -s, s, c);
       
-      p /= (1.0 + breathe); // Scale for breathing effect
-
-      // Vertical offset
-      p.y += 0.2 + uScroll * 0.02;
-
-      // Add noise-based fluid displacement
-      float noise = snoise(p * 0.5 + uTime * 0.4) * 0.15;
-      noise += snoise(p * 1.5 - uTime * 0.2) * 0.05;
-
-      // SDF Evaluation
+      // Heart Warp Logic
       float x = p.x;
       float y = p.y;
       float z = p.z;
       
-      // Coordinate warping for heart shape
-      float r = length(p);
-      float h = pow(abs(x), 1.0) * 0.5;
-      float d = length(vec3(p.x, p.y - h, p.z)) - (1.4 + noise);
+      float noise = snoise(p * 0.6 + uTime * 0.4) * 0.12;
+      noise += snoise(p * 1.8 - uTime * 0.2) * 0.06;
+
+      // Coordinate warping for classic heart shape
+      float h = pow(abs(x), 1.2) * 0.5;
+      // Threshold reduced to 0.7 for a smaller, centered heart
+      float d = length(vec3(p.x, p.y - h, p.z)) - (0.8 + noise);
       
       return d;
     }
@@ -131,13 +118,13 @@ const HeartFluidShader = {
       uv.x *= uResolution.x / uResolution.y;
 
       vec3 ro = vec3(0.0, 0.0, -5.0);
-      vec3 rd = normalize(vec3(uv, 2.8));
+      vec3 rd = normalize(vec3(uv, 3.2)); // Slightly narrower field for focus
 
       float t = 0.0;
       bool hit = false;
       vec3 p;
 
-      for(int i = 0; i < 48; i++) {
+      for(int i = 0; i < 50; i++) {
         p = ro + rd * t;
         float d = map(p);
         if(abs(d) < 0.01) {
@@ -155,19 +142,18 @@ const HeartFluidShader = {
         vec3 n = calcNormal(p);
         vec3 viewDir = normalize(ro - p);
         
-        float diff = max(dot(n, vec3(0.5, 0.7, -1.0)), 0.0);
-        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 3.0);
+        float diff = max(dot(n, vec3(0.5, 0.8, -1.0)), 0.0);
+        float fresnel = pow(1.0 - max(dot(n, viewDir), 0.0), 4.0);
 
-        // Gradient Palette: Deep Brown -> Bronze -> Soft Gold
-        vec3 deepBrown = vec3(0.18, 0.10, 0.04);
-        vec3 bronze = vec3(0.54, 0.33, 0.16);
-        vec3 softGold = vec3(0.83, 0.69, 0.22);
+        // DARK ORANGE Palette
+        vec3 darkOrange = vec3(0.25, 0.06, 0.0); // Deep base
+        vec3 midAmber = vec3(0.7, 0.25, 0.0);   // Vibrant core
+        vec3 goldHighlights = vec3(1.0, 0.65, 0.1); // Fresnel / Glow
 
-        vec3 base = mix(deepBrown, bronze, diff);
-        color = mix(base, softGold, fresnel * 0.6 + uGlow * 0.4);
+        vec3 base = mix(darkOrange, midAmber, diff);
+        color = mix(base, goldHighlights, fresnel * 0.7 + uGlow * 0.4);
         
-        // Semi-translucent
-        alpha = 0.35 + (fresnel * 0.2);
+        alpha = 0.3 + (fresnel * 0.3) + (uGlow * 0.1);
       }
 
       gl_FragColor = vec4(color, alpha);
@@ -178,6 +164,8 @@ const HeartFluidShader = {
 const RaymarchedHeart: React.FC<{ scene: Scene }> = ({ scene }) => {
   const meshRef = useRef<THREE.Mesh>(null);
   const { viewport, size } = useThree();
+  const timeRef = useRef(0);
+  const speedRef = useRef(1.0);
 
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -186,17 +174,30 @@ const RaymarchedHeart: React.FC<{ scene: Scene }> = ({ scene }) => {
     uScroll: { value: 0 },
   }), [size.width, size.height]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
     const material = meshRef.current.material as THREE.ShaderMaterial;
-    material.uniforms.uTime.value = state.clock.getElapsedTime();
+
+    // Detect if we are in a "Popup" or "Interaction" scene to slow down
+    const isPopupScene = 
+      scene === Scene.QUESTION_1 || 
+      scene === Scene.AFFIRMATION || 
+      scene === Scene.END_GAME_POPUP;
+
+    const targetSpeed = isPopupScene ? 0.3 : 1.0;
+    speedRef.current = THREE.MathUtils.lerp(speedRef.current, targetSpeed, 0.05);
+    
+    // Accumulate time based on dynamic speed
+    timeRef.current += delta * speedRef.current;
+    
+    material.uniforms.uTime.value = timeRef.current;
     material.uniforms.uResolution.value.set(size.width, size.height);
     material.uniforms.uScroll.value = window.scrollY * 0.01;
 
-    // React to scene: glow more during affirmation and end scenes
-    const isSpecialScene = scene === Scene.LOYALTY || scene === Scene.AFFIRMATION || scene === Scene.END_GAME_POPUP;
-    const targetGlow = isSpecialScene ? 1.0 : 0.0;
-    material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.02);
+    // Emotional Glow transitions
+    const isAffirmation = scene === Scene.LOYALTY || scene === Scene.AFFIRMATION || scene === Scene.END_GAME_POPUP;
+    const targetGlow = isAffirmation ? 1.2 : 0.0;
+    material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.03);
   });
 
   return (
@@ -214,19 +215,18 @@ const RaymarchedHeart: React.FC<{ scene: Scene }> = ({ scene }) => {
   );
 };
 
-// Define SceneProps interface to resolve the missing type error.
 interface SceneProps {
   currentScene: Scene;
 }
 
 const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
   return (
-    <div className="fixed inset-0 z-0 bg-[#0a0a0c]">
+    <div className="fixed inset-0 z-0 bg-[#070708]">
       <Canvas 
         camera={{ position: [0, 0, 5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
       >
-        <Stars radius={100} depth={50} count={1000} factor={4} saturation={0} fade speed={0.3} />
+        <Stars radius={120} depth={40} count={800} factor={4} saturation={0} fade speed={0.2} />
         <RaymarchedHeart scene={currentScene} />
         <Environment preset="night" />
       </Canvas>
