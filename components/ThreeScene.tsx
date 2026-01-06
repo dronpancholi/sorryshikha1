@@ -2,7 +2,7 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Stars, Environment } from '@react-three/drei';
-import * as THREE from 'this';
+import * as THREE from 'three';
 import { Scene } from '../types';
 
 // --- Abstract Orange Fluid Shader ---
@@ -88,7 +88,6 @@ const AbstractFluidShader = {
       p.y += uScroll * 0.05;
 
       // Large organic displacement for "fluid" look
-      // Combines two layers of noise for expansion/contraction
       float d = sdSphere(p, 1.8);
       float noise = snoise(p * 0.4 + uTime * 0.3) * 0.8;
       noise += snoise(p * 1.2 - uTime * 0.2) * 0.2;
@@ -176,7 +175,6 @@ const RaymarchedFluid: React.FC<{ scene: Scene }> = ({ scene }) => {
     material.uniforms.uResolution.value.set(size.width, size.height);
     material.uniforms.uScroll.value = window.scrollY * 0.01;
 
-    // Subtly brighten during emotional peaks
     const targetGlow = (scene === Scene.LOYALTY || scene === Scene.END_GAME_POPUP) ? 0.8 : 0.0;
     material.uniforms.uGlow.value = THREE.MathUtils.lerp(material.uniforms.uGlow.value, targetGlow, 0.02);
   });
@@ -208,7 +206,6 @@ const ThreeScene: React.FC<SceneProps> = ({ currentScene }) => {
         gl={{ antialias: true, alpha: true }}
       >
         <Stars radius={100} depth={50} count={1500} factor={4} saturation={0} fade speed={0.4} />
-        {/* Changed currentScene to scene to match RaymarchedFluid props */}
         <RaymarchedFluid scene={currentScene} />
         <Environment preset="night" />
       </Canvas>
